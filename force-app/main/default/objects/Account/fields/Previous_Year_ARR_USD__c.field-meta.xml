@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>Previous_Year_ARR_USD__c</fullName>
+    <description>Account Previous Year ARR in USD for tracking year-over-year changes - provides multi-currency Account reporting in USD regardless of individual Contract currencies (Text format for proper $ display)</description>
+    <externalId>false</externalId>
+    <inlineHelpText>Previous Year ARR in USD for tracking account ARR history. Displays as $123,456.78 format.</inlineHelpText>
+    <label>Previous Year ARR (USD)</label>
+    <length>255</length>
+    <required>false</required>
+    <trackFeedHistory>false</trackFeedHistory>
+    <trackHistory>false</trackHistory>
+    <type>Text</type>
+    <unique>false</unique>
+</CustomField>

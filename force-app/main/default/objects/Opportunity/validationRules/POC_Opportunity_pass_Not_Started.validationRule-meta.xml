@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ValidationRule xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>POC_Opportunity_pass_Not_Started</fullName>
+    <active>false</active>
+    <errorConditionFormula>AND(
+     RecordType.DeveloperName = &quot;Proof_of_Concept&quot;, 
+     ISBLANK( POC_Resource_Assigned__c ),
+     ISCHANGED(StageName),
+     NOT(ISPICKVAL(StageName, &quot;Not Started&quot;))
+    )</errorConditionFormula>
+    <errorDisplayField>POC_Resource_Assigned__c</errorDisplayField>
+    <errorMessage>POC Resource Assigned field must be complete to pass Not Started stage.</errorMessage>
+</ValidationRule>

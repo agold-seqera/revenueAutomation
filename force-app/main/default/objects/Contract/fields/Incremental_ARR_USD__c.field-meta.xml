@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>Incremental_ARR_USD__c</fullName>
+    <description>Incremental ARR USD amount from related Assets - provides multi-currency Contract reporting in USD regardless of individual Asset currencies (Text format for proper $ display)</description>
+    <externalId>false</externalId>
+    <inlineHelpText>Incremental ARR in USD calculated from related Assets. Automatically updates when Asset ARR values change. Displays as $123,456.78 format.</inlineHelpText>
+    <label>Incremental ARR (USD)</label>
+    <length>255</length>
+    <required>false</required>
+    <trackFeedHistory>false</trackFeedHistory>
+    <trackHistory>false</trackHistory>
+    <type>Text</type>
+    <unique>false</unique>
+</CustomField>

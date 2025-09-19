@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>Exclude_from_Status_Updates__c</fullName>
+    <defaultValue>false</defaultValue>
+    <description>When checked, excludes this contract from daily batch status calculations and revenue rollups. Use for manual revenue management or when contract should not affect automated account status logic.</description>
+    <inlineHelpText>Check this box to exclude this contract from automated daily status updates and revenue calculations. The contract will be ignored in account-level rollups and status determinations.</inlineHelpText>
+    <label>Exclude from Status Updates</label>
+    <trackFeedHistory>false</trackFeedHistory>
+    <trackHistory>false</trackHistory>
+    <type>Checkbox</type>
+</CustomField>

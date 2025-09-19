@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ValidationRule xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>Reason_for_WinLoss</fullName>
+    <active>true</active>
+    <errorConditionFormula>AND(
+OR(
+ISPICKVAL(StageName,&quot;Closed Won&quot;),
+ISPICKVAL(StageName, &quot;Closed Lost&quot;)),
+AND(ISBLANK( Win_Loss_Reason_Details__c ),
+ISBLANK( TEXT(Win_Loss_Reason__c )),
+NOT(OR($Profile.Name=&quot;System Administrator&quot;,$User.Division=&quot;Finance&quot;))
+))</errorConditionFormula>
+    <errorDisplayField>Win_Loss_Reason_Details__c</errorDisplayField>
+    <errorMessage>Win/Loss Reason required to Close opportunity</errorMessage>
+</ValidationRule>

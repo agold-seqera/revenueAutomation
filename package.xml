@@ -1,0 +1,261 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Package xmlns="http://soap.sforce.com/2006/04/metadata">
+    <!-- FLOWS -->
+    <types>
+        <members>Contract</members>
+        <members>Opp_After_Save_Churn_Notifications</members>
+        <members>Opp_Before_Save_Set_Lost_Renewals_to_Churned</members>
+        <members>Opportunity_After_Save_Contract_and_Asset_Management</members>
+        <members>Opportunity_After_Save_Nextflow_Conversion_Approval</members>
+        <members>Opportunity_Nextflow_Approval_Slack_Notification</members>
+        <members>Opportunity_Product_After_Save_First_Year_Logic</members>
+        <members>Opportunity_Product_Before_Save_First_Year_Logic</members>
+        <members>Opportunity_Product_Before_Save_Fist_Year_Logic</members>
+        <members>Opportunity_Subflow_Set_Nextflow_Status_to_Approved</members>
+        <members>Opportunity_Subflow_Set_Nextflow_Status_to_Pending</members>
+        <members>Opportunity_Subflow_Set_Nextflow_Status_to_Rejected</members>
+        <members>OpportunityLineItem_After_Delete_Update_Sync_to_Renewal_Status</members>
+        <members>OpportunityLineItem_After_Save_Calculate_Billing_Amount</members>
+        <members>OpportunityLineItem_After_Save_Update_Sync_to_Renewal_Status</members>
+        <members>Quote_Line_Item_After_Save_Calculate_Rollup_Fields</members>
+        <members>Quote_Line_Item_Before_Save_First_Year_Logic</members>
+        <members>Scheduled_Flow_Daily_Six_Month_Contract_Expiration_Notifications</members>
+        <members>Scheduled_Flow_Daily_Update_Accounts</members>
+        <members>Scheduled_Flow_Daily_Update_Assets</members>
+        <members>Scheduled_Flow_Monthly_Contract_Expiration_Notifications</members>
+        <members>Screen_Flow_Contract_Create_Opportunity_Change_Order_and_Renewal</members>
+        <name>Flow</name>
+    </types>
+    
+    <!-- PROFILES -->
+    <types>
+        <members>Admin</members>
+        <members>Custom SysAdmin</members>
+        <members>Minimum Access - Salesforce</members>
+        <members>Seqera Customer Service</members>
+        <members>Seqera Executive</members>
+        <members>Seqera Marketing</members>
+        <members>Seqera SDR</members>
+        <members>Seqera Sales</members>
+        <members>System Administrator (Service Account)</members>
+        <name>Profile</name>
+    </types>
+    
+    <!-- GROUPS -->
+    <types>
+        <members>Ops_Approver</members>
+        <name>Group</name>
+    </types>
+    
+    <!-- APEX TRIGGERS -->
+    <types>
+        <members>AssetTrigger</members>
+        <members>ContractTrigger</members>
+        <members>QuoteLineItemBillingCalculation</members>
+        <members>QuoteTrigger</members>
+        <name>ApexTrigger</name>
+    </types>
+    
+    <!-- APEX CLASSES -->
+    <types>
+        <members>AccountRollupBatch</members>
+        <members>AssetStatusBatch</members>
+        <members>AssetTriggerHandler</members>
+        <members>AssetTriggerHandlerTest</members>
+        <members>ContractRevenueBatch</members>
+        <members>ContractTriggerHandler</members>
+        <members>ContractTriggerHandlerAccountFieldsTest</members>
+        <members>ContractTriggerHandlerTest</members>
+        <members>CurrencyFormatterHelper</members>
+        <members>CurrencyFormatterHelperTest</members>
+        <members>ExchangeRateManager</members>
+        <members>ExchangeRateManagerTest</members>
+        <members>QuoteLineItemBillingCalculationTest</members>
+        <members>QuoteLineItemCalculationHelper</members>
+        <members>QuoteLineItemCalculationHelperTest</members>
+        <members>QuoteLineItemPricingTest</members>
+        <members>QuoteLineItemTriggerHandler</members>
+        <members>QuoteLineItemTriggerHandlerTest</members>
+        <members>QuoteProcessOrchestratorHandler</members>
+        <members>QuoteSyncInvocable</members>
+        <members>QuoteSyncInvocableTest</members>
+        <members>QuoteSyncService</members>
+        <members>QuoteSyncServiceTest</members>
+        <members>QuoteSyncTriggerHandlerTest</members>
+        <members>RevenueAutomationBatchManager</members>
+        <members>RevenueAutomationBatchTest</members>
+        <members>TestDataFactory</members>
+        <name>ApexClass</name>
+    </types>
+    
+    <!-- LAYOUTS -->
+    <types>
+        <members>Asset-Asset Layout</members>
+        <name>Layout</name>
+    </types>
+    
+    <!-- RECORD TYPES -->
+    <types>
+        <members>Account.Business</members>
+        <members>Account.Competitor</members>
+        <members>Account.Vendor</members>
+        <members>Opportunity.Academic_Opportunity</members>
+        <members>Opportunity.Existing_Customer_Opportunity</members>
+        <members>Opportunity.New_Sales_Opportunity</members>
+        <members>Opportunity.Proof_of_Concept</members>
+        <name>RecordType</name>
+    </types>
+    
+    <!-- FLEXIPAGES -->
+    <types>
+        <members>Contract_Record_Page1</members>
+        <members>ExistingCustomer_Opportunity_Record_Page_v31</members>
+        <members>NewSale_Opportunity_Record_Page_v3</members>
+        <members>Opportunity_Product_Record_Page</members>
+        <members>Process_Instance_Step_Record_Page</members>
+        <name>FlexiPage</name>
+    </types>
+    
+    <!-- QUICK ACTIONS -->
+    <types>
+        <members>Contract.Create_Opportunity</members>
+        <name>QuickAction</name>
+    </types>
+    
+    <!-- CUSTOM FIELDS - ACCOUNT -->
+    <types>
+        <members>Account.ACV_USD__c</members>
+        <members>Account.AnnualRevenue_USD__c</members>
+        <members>Account.ARR_USD__c</members>
+        <members>Account.ARR_USD_del3__c</members>
+        <members>Account.ARR_USD_del4__c</members>
+        <members>Account.Contract_Count__c</members>
+        <members>Account.Has_Contracts__c</members>
+        <members>Account.Incremental_ARR_USD__c</members>
+        <members>Account.MRR_USD__c</members>
+        <members>Account.Previous_Year_ACV_USD__c</members>
+        <members>Account.Previous_Year_ARR_USD__c</members>
+        <members>Account.Previous_Year_MRR_USD__c</members>
+        <members>Account.Previous_Year_TCV_USD__c</members>
+        <members>Account.Status__c</members>
+        <members>Account.TCV_USD__c</members>
+        <name>CustomField</name>
+    </types>
+    
+    <!-- CUSTOM FIELDS - ASSET -->
+    <types>
+        <members>Asset.Annual_Unit_Price__c</members>
+        <members>Asset.ARR_USD__c</members>
+        <members>Asset.Billing_Amount__c</members>
+        <members>Asset.Billing_Frequency__c</members>
+        <members>Asset.Discount__c</members>
+        <members>Asset.Exchange_Rate__c</members>
+        <members>Asset.Exclude_from_Status_Updates__c</members>
+        <members>Asset.Include_in_ARR_Override__c</members>
+        <members>Asset.Include_in_ARR_Sum__c</members>
+        <members>Asset.MRR_USD__c</members>
+        <members>Asset.Originating_OLI__c</members>
+        <members>Asset.Payment_Terms__c</members>
+        <members>Asset.Price_USD__c</members>
+        <members>Asset.Prorated_Unit_Price__c</members>
+        <members>Asset.Total_Price_USD__c</members>
+        <members>Asset.Total_Value__c</members>
+        <members>Asset.Total_Value_USD__c</members>
+        <members>Asset.Unit_ARR_USD__c</members>
+        <members>Asset.Unit_MRR_USD__c</members>
+        <members>Asset.Unit_Value__c</members>
+        <members>Asset.Unit_Value_USD__c</members>
+        <name>CustomField</name>
+    </types>
+    
+    <!-- CUSTOM FIELDS - CONTRACT -->
+    <types>
+        <members>Contract.ACV_USD__c</members>
+        <members>Contract.Active_ARR_USD__c</members>
+        <members>Contract.ARR_USD__c</members>
+        <members>Contract.Exclude_from_Status_Updates__c</members>
+        <members>Contract.Incremental_ARR_USD__c</members>
+        <members>Contract.Initial_ACV__c</members>
+        <members>Contract.Initial_ACV_USD__c</members>
+        <members>Contract.Initial_ARR__c</members>
+        <members>Contract.Initial_ARR_USD__c</members>
+        <members>Contract.Initial_MRR__c</members>
+        <members>Contract.Initial_MRR_USD__c</members>
+        <members>Contract.Initial_TCV__c</members>
+        <members>Contract.Initial_TCV_USD__c</members>
+        <members>Contract.MRR_USD__c</members>
+        <members>Contract.Previous_ACV_USD__c</members>
+        <members>Contract.Previous_ARR_USD__c</members>
+        <members>Contract.Previous_Contract__c</members>
+        <members>Contract.Previous_MRR_USD__c</members>
+        <members>Contract.Previous_TCV_USD__c</members>
+        <members>Contract.TCV_USD__c</members>
+        <members>Contract.Term_Length_Months__c</members>
+        <name>CustomField</name>
+    </types>
+    
+    <!-- CUSTOM FIELDS - OPPORTUNITY -->
+    <types>
+        <members>Opportunity.All_OLIs_Have_Sync_to_Renewal__c</members>
+        <members>Opportunity.ARR_RUS__c</members>
+        <members>Opportunity.Contract_Assets_Processed__c</members>
+        <members>Opportunity.Incremental_ARR_calc__c</members>
+        <members>Opportunity.Nextflow_Conversion_Approval__c</members>
+        <members>Opportunity.Ops_Approval_Override__c</members>
+        <members>Opportunity.Sales_Approval_Override__c</members>
+        <members>Opportunity.Services_SKUs__c</members>
+        <members>Opportunity.Software_Subscription_Amount_RUS__c</members>
+        <members>Opportunity.TCV__c</members>
+        <name>CustomField</name>
+    </types>
+    
+    <!-- CUSTOM FIELDS - OPPORTUNITY LINE ITEM -->
+    <types>
+        <members>OpportunityLineItem.Exchange_Rate__c</members>
+        <members>OpportunityLineItem.Include_in_ARR__c</members>
+        <members>OpportunityLineItem.Include_in_ARR_Sum__c</members>
+        <members>OpportunityLineItem.Sync_to_Renewal__c</members>
+        <name>CustomField</name>
+    </types>
+    
+    <!-- CUSTOM FIELDS - QUOTE -->
+    <types>
+        <members>Quote.Annual_Total_USD__c</members>
+        <members>Quote.Exchange_Rate__c</members>
+        <members>Quote.Exchange_Rate_at_Creation__c</members>
+        <members>Quote.First_Payment_Due__c</members>
+        <members>Quote.First_Payment_Due_USD__c</members>
+        <members>Quote.One_Off_Charges_USD__c</members>
+        <members>Quote.Total_Payment_Due_USD__c</members>
+        <members>Quote.TotalPrice_USD__c</members>
+        <name>CustomField</name>
+    </types>
+    
+    <!-- CUSTOM FIELDS - QUOTE LINE ITEM -->
+    <types>
+        <members>QuoteLineItem.Annual_Amount_USD__c</members>
+        <members>QuoteLineItem.Exchange_Rate__c</members>
+        <members>QuoteLineItem.Include_in_ARR__c</members>
+        <members>QuoteLineItem.Include_in_ARR_Sum__c</members>
+        <members>QuoteLineItem.List_Price_USD__c</members>
+        <members>QuoteLineItem.ListPrice_USD__c</members>
+        <members>QuoteLineItem.Total_Price_USD__c</members>
+        <members>QuoteLineItem.TotalPrice_USD__c</members>
+        <members>QuoteLineItem.UnitPrice_USD__c</members>
+        <name>CustomField</name>
+    </types>
+    
+    <!-- VALIDATION RULES -->
+    <types>
+        <members>Opportunity.Account_Fields_Required_For_Close</members>
+        <members>Opportunity.Change_Order_Sync_to_Renewal_Required</members>
+        <members>Opportunity.Needs_Accepted_Quote</members>
+        <members>Opportunity.Nextflow_Approval_Required_For_Close</members>
+        <members>Opportunity.Pass_Discovery_Stage</members>
+        <members>Opportunity.Services_Fields_Required_for_Service_Opp</members>
+        <members>OpportunityLineItem.Sync_to_Renewal_Required_Close</members>
+        <name>ValidationRule</name>
+    </types>
+    
+    <version>61.0</version>
+</Package>

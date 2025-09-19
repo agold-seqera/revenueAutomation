@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ValidationRule xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>Pass_Negotiations_Stage</fullName>
+    <active>true</active>
+    <errorConditionFormula>AND(
+    OR(
+        RecordType.DeveloperName = &apos;New_Sales_Opportunity&apos;,
+        RecordType.DeveloperName = &apos;Existing_Business_Opportunity&apos;
+    ),
+    NOT(
+        OR(
+            ISPICKVAL(StageName, &quot;Initial Meeting&quot;),
+            ISPICKVAL(StageName, &quot;Discovery&quot;),
+            ISPICKVAL(StageName, &quot;Qualification&quot;),
+            ISPICKVAL(StageName, &quot;Validation&quot;),
+            ISPICKVAL(StageName, &quot;POC&quot;),
+            ISPICKVAL(StageName, &quot;Negotiations/Contracting&quot;)
+        )
+    ),
+    OR(
+        ISBLANK(TEXT(SLA_Status__c)),
+        ISBLANK(TEXT(Contract_Billing_Frequency__c)),
+        ISBLANK(TEXT(Order_Status__c)),
+        ISBLANK(TEXT(PO_Status__c)),
+        ISBLANK(TEXT(Payment_Terms__c)),
+        ISBLANK(TEXT(Contract_Start_Date__c )),
+        ISBLANK(TEXT(Contract_End_Date__c ))
+    ),
+NOT(OR($Profile.Name=&quot;System Administrator&quot;,$User.Division=&quot;Finance&quot;)),NOT(ISPICKVAL(StageName, &quot;Closed Lost&quot;))
+)</errorConditionFormula>
+    <errorMessage>All fields in the &apos;Negotiations/Contracting&apos; section and contract terms must be filled out in order to advance the stage.</errorMessage>
+</ValidationRule>

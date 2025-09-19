@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>TotalPrice_USD__c</fullName>
+    <description>TotalPrice converted to USD using locked exchange rate - provides consistent USD reporting for Quotes regardless of currency fluctuations</description>
+    <externalId>false</externalId>
+    <formula>IF(ISBLANK(Exchange_Rate__c), 
+    NULL, 
+    &quot;$&quot; + TEXT(ROUND(TotalPrice * Exchange_Rate__c, 2))
+)</formula>
+    <formulaTreatBlanksAs>BlankAsZero</formulaTreatBlanksAs>
+    <inlineHelpText>TotalPrice converted to USD using the locked exchange rate. Updates automatically when exchange rate or total price changes.</inlineHelpText>
+    <label>TotalPrice (USD)</label>
+    <required>false</required>
+    <trackHistory>false</trackHistory>
+    <type>Text</type>
+    <unique>false</unique>
+</CustomField>

@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>MRR_USD__c</fullName>
+    <description>Account MRR in USD rolled up from related Contract USD amounts - provides multi-currency Account reporting in USD regardless of individual Contract currencies (Text format for proper $ display)</description>
+    <externalId>false</externalId>
+    <inlineHelpText>Account Monthly Recurring Revenue in USD calculated by summing Contract MRR USD amounts. Populated automatically via Flow/Apex rollup logic. Displays as $123,456.78 format.</inlineHelpText>
+    <label>MRR (USD)</label>
+    <length>255</length>
+    <required>false</required>
+    <trackFeedHistory>false</trackFeedHistory>
+    <trackHistory>false</trackHistory>
+    <type>Text</type>
+    <unique>false</unique>
+</CustomField>

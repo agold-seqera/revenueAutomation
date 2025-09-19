@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ValidationRule xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>Change_Order_Sync_to_Renewal_Required</fullName>
+    <active>true</active>
+    <errorConditionFormula>AND(
+    ISPICKVAL(Deal_Type__c, &quot;Change Order&quot;),
+    OR(
+        ISPICKVAL(StageName, &quot;Closed Won&quot;),
+        ISPICKVAL(StageName, &quot;Closed Lost&quot;)
+    ),
+    NOT($Profile.Name = &quot;System Administrator&quot;),
+    HasOpportunityLineItem = true,
+    All_OLIs_Have_Sync_to_Renewal__c = false
+)</errorConditionFormula>
+    <errorMessage>Sync to Renewal selection is required for all products on Change Order opportunities before closing. Please select &quot;Yes&quot; or &quot;No&quot; for each product to indicate whether it should continue to the renewal opportunity.</errorMessage>
+</ValidationRule>

@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ValidationRule xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>VR_QLI_Service_Dates_Logical</fullName>
+    <active>true</active>
+    <description>Ensure service start date is not after service end date</description>
+    <errorConditionFormula>AND(
+  NOT(ISBLANK(Service_Start_Date__c)),
+  NOT(ISBLANK(Service_End_Date__c)),
+  Service_Start_Date__c &gt; Service_End_Date__c
+)</errorConditionFormula>
+    <errorDisplayField>Service_Start_Date__c</errorDisplayField>
+    <errorMessage>Line item start date cannot be after end date</errorMessage>
+</ValidationRule>

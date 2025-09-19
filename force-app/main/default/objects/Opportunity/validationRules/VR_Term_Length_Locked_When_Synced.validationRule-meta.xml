@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ValidationRule xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>VR_Term_Length_Locked_When_Synced</fullName>
+    <active>true</active>
+    <description>Prevents term length modification when opportunity is synced from an approved quote</description>
+    <errorConditionFormula>AND(
+  NOT(ISBLANK(Contract_End_Date_Override__c)),
+  ISCHANGED(Term_Length_Months__c),
+  NOT($Profile.Name = &quot;System Administrator&quot;)
+)</errorConditionFormula>
+    <errorDisplayField>Term_Length_Months__c</errorDisplayField>
+    <errorMessage>Term length cannot be modified when synced from an approved quote. Create a new quote to change contract terms.</errorMessage>
+</ValidationRule>

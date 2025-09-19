@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ValidationRule xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>POC_Outcome_Required_For_POC</fullName>
+    <active>true</active>
+    <errorConditionFormula>AND(
+RecordType.DeveloperName=&apos;Proof_of_Concept&apos;,
+ISBLANK(TEXT(POC_Outcome__c)),
+ISPICKVAL(StageName, &quot;Negotiations/Contracting&quot;),
+NOT(OR($Profile.Name=&quot;System Administrator&quot;,$User.Division=&quot;Finance&quot;)),
+NOT(ISPICKVAL(StageName, &quot;Closed Lost&quot;))
+)</errorConditionFormula>
+    <errorDisplayField>POC_Outcome__c</errorDisplayField>
+    <errorMessage>A POC Outcome is required to move beyond the &apos;POC In Progress&apos; Stage.</errorMessage>
+</ValidationRule>

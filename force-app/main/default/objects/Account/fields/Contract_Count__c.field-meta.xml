@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>Contract_Count__c</fullName>
+    <defaultValue>0</defaultValue>
+    <description>Total number of contracts on this account (any status). Used for monitoring and business insights.</description>
+    <externalId>false</externalId>
+    <inlineHelpText>Automatically populated by Contract trigger. Do not manually edit.</inlineHelpText>
+    <label>Contract Count</label>
+    <precision>16</precision>
+    <required>false</required>
+    <scale>0</scale>
+    <trackFeedHistory>false</trackFeedHistory>
+    <trackHistory>false</trackHistory>
+    <type>Number</type>
+    <unique>false</unique>
+</CustomField>

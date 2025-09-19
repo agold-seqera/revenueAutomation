@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ValidationRule xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>VR_Lock_Fields_During_Approval</fullName>
+    <active>false</active>
+    <description>Locks quote editing when status is In Review, except for admin profiles</description>
+    <errorConditionFormula>AND(
+    ISPICKVAL(Status, &quot;In Review&quot;),
+    
+    NOT($Profile.Name = &quot;System Administrator&quot;),
+    NOT($Profile.Name = &quot;Admin&quot;),
+    NOT($User.Division = &quot;Finance&quot;),
+    OR(
+        ISCHANGED(Customer_Legal_Name__c),
+        ISCHANGED(BillingName),
+        ISCHANGED(Master_Terms__c),
+        ISCHANGED(Seqera_Contact_Email__c),
+        ISCHANGED(DPA_Required__c),
+        ISCHANGED(ExpirationDate),
+        ISCHANGED(Payment_Terms__c),
+        ISCHANGED(Order_Start_Date__c),
+        ISCHANGED(Order_End_Date__c),
+        ISCHANGED(Term_Length_Months__c),
+        ISCHANGED(Billing_Frequency__c),
+        ISCHANGED(BillingName),
+        ISCHANGED(Tax_Exempt__c),
+        ISCHANGED(Primary_Customer_Contact__c),
+        ISCHANGED(Customer_Legal_Notice_Contact__c),
+        ISCHANGED(Billing_Contact__c),
+        ISCHANGED(PO_Required_by_Customer__c)
+    )
+)</errorConditionFormula>
+    <errorMessage>Quote cannot be edited while In Review status. Please contact an administrator if changes are required.</errorMessage>
+</ValidationRule>

@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ValidationRule xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>VR_Quote_Order_Dates_Logical</fullName>
+    <active>true</active>
+    <description>Ensure order start date is not after order end date</description>
+    <errorConditionFormula>Order_Start_Date__c &gt; Order_End_Date__c</errorConditionFormula>
+    <errorDisplayField>Order_Start_Date__c</errorDisplayField>
+    <errorMessage>Order start date cannot be after end date</errorMessage>
+</ValidationRule>

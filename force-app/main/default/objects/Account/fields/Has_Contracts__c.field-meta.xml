@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>Has_Contracts__c</fullName>
+    <defaultValue>false</defaultValue>
+    <description>Indicates if this account has one or more contracts (any status). Used by Account flow for performance optimization.</description>
+    <inlineHelpText>Automatically populated by Contract trigger. Do not manually edit.</inlineHelpText>
+    <label>Has Contracts</label>
+    <trackFeedHistory>false</trackFeedHistory>
+    <trackHistory>false</trackHistory>
+    <type>Checkbox</type>
+</CustomField>

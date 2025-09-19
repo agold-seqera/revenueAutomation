@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>ACV_USD__c</fullName>
+    <description>Account ACV in USD rolled up from related Contract USD amounts - provides multi-currency Account reporting in USD regardless of individual Contract currencies (Text format for proper $ display)</description>
+    <externalId>false</externalId>
+    <inlineHelpText>Account Annual Contract Value in USD calculated by summing Contract ACV USD amounts. Populated automatically via Flow/Apex rollup logic. Displays as $123,456.78 format.</inlineHelpText>
+    <label>ACV (USD)</label>
+    <length>255</length>
+    <required>false</required>
+    <trackFeedHistory>false</trackFeedHistory>
+    <trackHistory>false</trackHistory>
+    <type>Text</type>
+    <unique>false</unique>
+</CustomField>

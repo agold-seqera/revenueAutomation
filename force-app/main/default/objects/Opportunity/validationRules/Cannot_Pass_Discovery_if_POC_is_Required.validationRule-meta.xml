@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ValidationRule xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>Cannot_Pass_Discovery_if_POC_is_Required</fullName>
+    <active>true</active>
+    <errorConditionFormula>AND(
+RecordType.DeveloperName=&quot;New_Sales_Opportunity&quot;,
+ISPICKVAL(POC_Needed__c, &quot;Yes&quot;), 
+NOT(ISPICKVAL(StageName, &quot;Discovery&quot;)),
+NOT(ISPICKVAL(StageName, &quot;Initial Meeting&quot;)),
+ISCHANGED(StageName),
+NOT(ISPICKVAL(StageName, &quot;Closed Lost&quot;)),
+NOT(OR($Profile.Name=&quot;System Administrator&quot;,$User.Division=&quot;Finance&quot;))
+)</errorConditionFormula>
+    <errorDisplayField>POC_Needed__c</errorDisplayField>
+    <errorMessage>If a POC is needed you cannot pass &apos;Discovery&apos;, and must Request a POC.</errorMessage>
+</ValidationRule>

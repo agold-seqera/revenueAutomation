@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ValidationRule xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>Account_Fields_Required_For_Close</fullName>
+    <active>true</active>
+    <description>Requires Account Segment, Vertical, Type, and Type__c fields to be populated before opportunity closure</description>
+    <errorConditionFormula>AND(
+    OR(
+        ISPICKVAL(StageName, &quot;Closed Won&quot;),
+        ISPICKVAL(StageName, &quot;Closed Lost&quot;)
+    ),
+    OR(
+        ISBLANK(TEXT(Account.Segment__c)),
+        ISBLANK(TEXT(Account.Vertical__c)),
+        ISBLANK(TEXT(Account.Type)),
+        ISBLANK(TEXT(Account.Type__c))
+    ),
+    NOT(OR(
+        $Profile.Name = &quot;System Administrator&quot;,
+        $User.Division = &quot;Finance&quot;
+    ))
+)</errorConditionFormula>
+    <errorMessage>Account fields are required before closing: Segment, Vertical, Type, and Type (Custom) must all be populated on the related Account.</errorMessage>
+</ValidationRule>

@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>Incremental_ARR_calc__c</fullName>
+    <formula>CASE(Deal_Type__c,
+    &apos;Renewal&apos;, ARR_RUS__c - Starting_ARR__c,
+    &apos;New Business&apos;, ARR_RUS__c,
+    &apos;New Logo&apos;, ARR_RUS__c,
+    &apos;Existing Logo&apos;, ARR_RUS__c,
+    &apos;Change Order&apos;, ARR_RUS__c,
+    &apos;Churn&apos;, 0 - Starting_ARR__c,
+    ARR_RUS__c - Starting_ARR__c)</formula>
+    <formulaTreatBlanksAs>BlankAsZero</formulaTreatBlanksAs>
+    <label>Incremental ARR</label>
+    <precision>18</precision>
+    <required>false</required>
+    <scale>2</scale>
+    <type>Currency</type>
+</CustomField>

@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ValidationRule xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>VR_Draft_to_Needs_Review_Required_Fields</fullName>
+    <active>true</active>
+    <description>Validates all required fields when transitioning from Draft to Needs Review status</description>
+    <errorConditionFormula>AND(
+        AND(
+            ISPICKVAL(Status, &quot;Needs Review&quot;),
+            NOT(ISPICKVAL(PRIORVALUE(Status), &quot;Needs Review&quot;))
+        ),
+    NOT($Profile.Name = &quot;System Administrator&quot;),
+    NOT($Profile.Name = &quot;Admin&quot;),
+    NOT($User.Division = &quot;Finance&quot;),
+    NOT(First_Approval_Override__c),
+    NOT(Second_Approval_Override__c),
+    OR(
+        ISBLANK(Customer_Legal_Name__c),
+        ISBLANK(BillingName),
+        ISBLANK(TEXT(Master_Terms__c)),
+        ISBLANK(Seqera_Contact_Email__c),
+        ISBLANK(TEXT(DPA_Required__c)),
+        ISBLANK(ExpirationDate),
+        ISBLANK(TEXT(Payment_Terms__c)),
+        ISBLANK(Order_Start_Date__c),
+        ISBLANK(Order_End_Date__c),
+        ISBLANK(Term_Length_Months__c),
+        ISBLANK(Annual_Total__c),
+        ISBLANK(Total_Payment_Due__c),
+        ISBLANK(TEXT(Billing_Frequency__c)),
+        ISBLANK(TEXT(Tax_Exempt__c)),
+        ISBLANK(Primary_Customer_Contact__c),
+        ISBLANK(Customer_Legal_Notice_Contact__c),
+        ISBLANK(Billing_Contact__c),
+        ISBLANK(TEXT(PO_Required_by_Customer__c)),
+        LineItemCount = 0,
+        ISNULL(LineItemCount)
+    )
+)</errorConditionFormula>
+    <errorMessage>Required fields missing for Needs Review status. Check: Customer Legal Name, Master Terms, Billing Frequency, Payment Terms, Annual Total, Total Payment Due, and Quote Line Items.</errorMessage>
+</ValidationRule>

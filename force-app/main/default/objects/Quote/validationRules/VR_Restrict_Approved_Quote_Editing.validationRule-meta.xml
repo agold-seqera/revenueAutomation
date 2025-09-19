@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ValidationRule xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>VR_Restrict_Approved_Quote_Editing</fullName>
+    <active>false</active>
+    <description>Restricts editing of Approved quotes - only allows contact roles and bill to changes for AEs, full access for admins</description>
+    <errorConditionFormula>AND(
+    OR(
+        ISPICKVAL(Status, &quot;Approved&quot;),
+        ISPICKVAL(Status, &quot;Presented&quot;)
+    ),
+    
+    NOT($Profile.Name = &quot;System Administrator&quot;),
+    NOT($Profile.Name = &quot;Admin&quot;),
+    NOT($User.Division = &quot;Finance&quot;),
+    OR(
+        ISCHANGED(Order_Start_Date__c),
+        ISCHANGED(Order_End_Date__c),
+        ISCHANGED(Term_Length_Months__c),
+        ISCHANGED(Master_Terms__c),
+        ISCHANGED(Payment_Terms__c),
+        ISCHANGED(Billing_Frequency__c),
+        ISCHANGED(Annual_Total__c),
+        ISCHANGED(One_Off_Charges__c),
+        ISCHANGED(First_Payment_Due__c),
+        ISCHANGED(Total_Payment_Due__c)
+    )
+)</errorConditionFormula>
+    <errorMessage>Approved quotes cannot modify line items, date fields, or terms. You may only edit contact roles and bill to information.</errorMessage>
+</ValidationRule>

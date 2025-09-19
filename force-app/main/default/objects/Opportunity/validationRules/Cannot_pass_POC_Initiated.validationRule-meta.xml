@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ValidationRule xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>Cannot_pass_POC_Initiated</fullName>
+    <active>true</active>
+    <errorConditionFormula>AND(
+RecordType.DeveloperName=&quot;Proof_of_Concept&quot;,
+ISBLANK(TEXT(POC_Outcome__c)),
+ISBLANK(POC_Feedback_Notes__c),
+ISCHANGED(StageName),
+ISPICKVAL(StageName,&quot;Qualification&quot;),
+NOT(ISPICKVAL(StageName,&quot;Discovery&quot;)),
+NOT(OR($Profile.Name=&quot;System Administrator&quot;,$User.Division=&quot;Finance&quot;)),
+NOT(ISPICKVAL(StageName, &quot;Closed Lost&quot;))
+)</errorConditionFormula>
+    <errorDisplayField>POC_Feedback_Notes__c</errorDisplayField>
+    <errorMessage>You cannot pass &apos;POC Initiated&apos; without a POC Outcome and POC Feedback Notes.</errorMessage>
+</ValidationRule>

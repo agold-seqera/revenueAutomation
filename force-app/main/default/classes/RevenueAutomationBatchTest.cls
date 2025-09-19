@@ -13,13 +13,19 @@ public class RevenueAutomationBatchTest {
         testAccount.Has_Contracts__c = true;
         insert testAccount;
         
-        // Create test contract with proper dates for activation
+        // Create test contract with proper dates for activation by ContractRevenueBatch
         Contract testContract = TestDataFactory.createContract(testAccount.Id, 'Batch Test Contract');
-        testContract.StartDate = Date.today().addDays(-30);
-        testContract.EndDate = Date.today().addDays(335);
-        testContract.Status = 'Draft';
-        testContract.Exclude_from_Status_Updates__c = false;
+        testContract.StartDate = Date.today().addDays(-30); // Started 30 days ago (meets StartDate <= today)
+        testContract.EndDate = Date.today().addDays(335);   // Ends 335 days from now (meets EndDate >= today)
+        testContract.Status = 'Draft';                      // Start as Draft for batch to activate
+        testContract.Exclude_from_Status_Updates__c = false; // Allow status updates (meets condition)
         insert testContract;
+        
+        // Debug: Verify the contract setup before batch execution
+        System.debug('DEBUG: Contract StartDate: ' + testContract.StartDate + ', EndDate: ' + testContract.EndDate);
+        System.debug('DEBUG: Today: ' + Date.today());
+        System.debug('DEBUG: Contract Status before batch: ' + testContract.Status);
+        System.debug('DEBUG: Exclude_from_Status_Updates__c: ' + testContract.Exclude_from_Status_Updates__c);
         
         // Create test assets with different scenarios
         List<Asset> testAssets = new List<Asset>();
@@ -70,10 +76,22 @@ public class RevenueAutomationBatchTest {
     
     @isTest
     static void testContractRevenueBatch() {
+        // Get the contract to test
+        Contract testContract = [
+            SELECT Id, Status, StartDate, EndDate, Exclude_from_Status_Updates__c
+            FROM Contract 
+            LIMIT 1
+        ];
+        
         Test.startTest();
         
-        // Execute Contract batch
-        Database.executeBatch(new ContractRevenueBatch(), 50);
+        // SYNCHRONOUS EXECUTION: Call batch methods directly instead of Database.executeBatch
+        ContractRevenueBatch batch = new ContractRevenueBatch();
+        Database.QueryLocator ql = batch.start(null);
+        List<Contract> contracts = Database.query(ql.getQuery());
+        
+        // Execute the batch logic directly (synchronously)
+        batch.execute(null, contracts);
         
         Test.stopTest();
         
@@ -82,7 +100,7 @@ public class RevenueAutomationBatchTest {
             SELECT Id, Status, ARR__c, ACV__c, TCV__c, MRR__c, Active_ARR__c, Incremental_ARR__c,
                    ARR_USD__c, ACV_USD__c, TCV_USD__c, MRR_USD__c, Active_ARR_USD__c
             FROM Contract 
-            LIMIT 1
+            WHERE Id = :testContract.Id
         ];
         
         // Contract should be Activated (within start/end dates)

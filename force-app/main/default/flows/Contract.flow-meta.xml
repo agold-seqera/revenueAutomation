@@ -10,7 +10,7 @@
         <connector>
             <targetReference>Format_Currency_Action_2</targetReference>
         </connector>
-        <flowTransactionModel>Automatic</flowTransactionModel>
+        <flowTransactionModel>CurrentTransaction</flowTransactionModel>
         <inputParameters>
             <name>amount</name>
             <value>
@@ -31,7 +31,7 @@
         <connector>
             <targetReference>Format_Currency_Action_3</targetReference>
         </connector>
-        <flowTransactionModel>Automatic</flowTransactionModel>
+        <flowTransactionModel>CurrentTransaction</flowTransactionModel>
         <inputParameters>
             <name>amount</name>
             <value>
@@ -52,7 +52,7 @@
         <connector>
             <targetReference>Format_Currency_Action_4</targetReference>
         </connector>
-        <flowTransactionModel>Automatic</flowTransactionModel>
+        <flowTransactionModel>CurrentTransaction</flowTransactionModel>
         <inputParameters>
             <name>amount</name>
             <value>
@@ -73,7 +73,7 @@
         <connector>
             <targetReference>Format_Currency_Action_5</targetReference>
         </connector>
-        <flowTransactionModel>Automatic</flowTransactionModel>
+        <flowTransactionModel>CurrentTransaction</flowTransactionModel>
         <inputParameters>
             <name>amount</name>
             <value>
@@ -94,7 +94,7 @@
         <connector>
             <targetReference>Assign_Formatted_USD_Fields</targetReference>
         </connector>
-        <flowTransactionModel>Automatic</flowTransactionModel>
+        <flowTransactionModel>CurrentTransaction</flowTransactionModel>
         <inputParameters>
             <name>amount</name>
             <value>

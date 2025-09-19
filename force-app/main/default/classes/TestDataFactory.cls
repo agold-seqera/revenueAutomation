@@ -210,6 +210,7 @@ public class TestDataFactory {
             AccountId = accountId,
             ContractTerm = 12,
             StartDate = Date.today(),
+            EndDate = Date.today().addMonths(12),
             Status = 'Draft'
         );
         return testContract;
@@ -219,6 +220,9 @@ public class TestDataFactory {
     public static Contract createContract(Id accountId, String contractName, String status) {
         Contract testContract = createContract(accountId, contractName);
         testContract.Status = status;
+        
+        // Contracts can be Activated without signed dates based on org data
+        
         return testContract;
     }
     

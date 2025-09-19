@@ -10,7 +10,7 @@
         <connector>
             <targetReference>Format_TCV_USD</targetReference>
         </connector>
-        <flowTransactionModel>Automatic</flowTransactionModel>
+        <flowTransactionModel>CurrentTransaction</flowTransactionModel>
         <inputParameters>
             <name>amount</name>
             <value>
@@ -31,7 +31,7 @@
         <connector>
             <targetReference>Format_ACV_USD</targetReference>
         </connector>
-        <flowTransactionModel>Automatic</flowTransactionModel>
+        <flowTransactionModel>CurrentTransaction</flowTransactionModel>
         <inputParameters>
             <name>amount</name>
             <value>
@@ -52,7 +52,7 @@
         <connector>
             <targetReference>Assign_Final_Account_USD_Fields</targetReference>
         </connector>
-        <flowTransactionModel>Automatic</flowTransactionModel>
+        <flowTransactionModel>CurrentTransaction</flowTransactionModel>
         <inputParameters>
             <name>amount</name>
             <value>
@@ -73,7 +73,7 @@
         <connector>
             <targetReference>Format_iARR_USD</targetReference>
         </connector>
-        <flowTransactionModel>Automatic</flowTransactionModel>
+        <flowTransactionModel>CurrentTransaction</flowTransactionModel>
         <inputParameters>
             <name>amount</name>
             <value>
@@ -94,7 +94,7 @@
         <connector>
             <targetReference>Format_MRR_USD</targetReference>
         </connector>
-        <flowTransactionModel>Automatic</flowTransactionModel>
+        <flowTransactionModel>CurrentTransaction</flowTransactionModel>
         <inputParameters>
             <name>amount</name>
             <value>

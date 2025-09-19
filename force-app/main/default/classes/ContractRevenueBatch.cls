@@ -236,6 +236,7 @@ public class ContractRevenueBatch implements Database.Batchable<sObject> {
     private String determineContractStatus(Contract contract, Date today) {
         // Rule 1: Before Start Date - no status change (flow exits)
         if (contract.StartDate > today) {
+            System.debug('ContractRevenueBatch: Contract ' + contract.Id + ' is before start date');
             return null;
         }
         
@@ -243,6 +244,7 @@ public class ContractRevenueBatch implements Database.Batchable<sObject> {
         if (contract.StartDate <= today && 
             contract.EndDate >= today && 
             contract.Exclude_from_Status_Updates__c == false) {
+            System.debug('ContractRevenueBatch: Contract ' + contract.Id + ' should be Activated. StartDate: ' + contract.StartDate + ', EndDate: ' + contract.EndDate + ', Today: ' + today + ', Exclude: ' + contract.Exclude_from_Status_Updates__c);
             return 'Activated';
         }
         
@@ -250,10 +252,12 @@ public class ContractRevenueBatch implements Database.Batchable<sObject> {
         if (contract.EndDate < today && 
             contract.Status != 'Expired' && 
             contract.Exclude_from_Status_Updates__c == false) {
+            System.debug('ContractRevenueBatch: Contract ' + contract.Id + ' should be Expired');
             return 'Expired';
         }
         
         // Default: No status change
+        System.debug('ContractRevenueBatch: Contract ' + contract.Id + ' no status change. StartDate: ' + contract.StartDate + ', EndDate: ' + contract.EndDate + ', Status: ' + contract.Status + ', Exclude: ' + contract.Exclude_from_Status_Updates__c);
         return null;
     }
 }

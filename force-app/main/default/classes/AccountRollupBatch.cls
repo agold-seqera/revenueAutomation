@@ -90,12 +90,6 @@ public class AccountRollupBatch implements Database.Batchable<sObject> {
      * 9. Update_Account
      */
     private Account processAccount(Account account, Date today) {
-        // Step 1: Nullify_Revenue_Fields (exact flow logic)
-        account.ARR__c = 0;
-        account.Incremental_ARR__c = 0;
-        account.ACV__c = 0;
-        account.TCV__c = 0;
-        
         // Initialize USD totals and tracking variables
         Decimal varARR_USD_Total = 0;
         Decimal varACV_USD_Total = 0;
@@ -112,6 +106,9 @@ public class AccountRollupBatch implements Database.Batchable<sObject> {
         Decimal varN_ActiveContracts = 0;
         Decimal varN_FutureContracts = 0;
         Decimal varN_NumExpiredContracts = 0;
+        
+        // Revenue preservation flag
+        Boolean shouldPreserveExpiredRevenue = false;
         
         // Step 2-3: Process contracts with renewals (v42 enhancement)
         for (Contract contract : account.Contracts) {
@@ -136,20 +133,8 @@ public class AccountRollupBatch implements Database.Batchable<sObject> {
         }
         varB_AllContractsCancelled = (cancelledContracts == totalContracts && totalContracts > 0);
         
-        // Step 6: Loop_Contracts - Revenue aggregation and contract counting
+        // Step 6: Loop_Contracts - Contract counting first (to determine preservation logic)
         for (Contract contract : account.Contracts) {
-            // Revenue aggregation (exact flow logic)
-            account.ARR__c += contract.ARR__c != null ? contract.ARR__c : 0;
-            account.ACV__c += contract.ACV__c != null ? contract.ACV__c : 0;
-            account.TCV__c += contract.TCV__c != null ? contract.TCV__c : 0;
-            account.Incremental_ARR__c += contract.Incremental_ARR__c != null ? contract.Incremental_ARR__c : 0;
-            
-            // USD aggregation (exact flow formulas)
-            varARR_USD_Total += parseUSDValue(contract.ARR_USD__c);
-            varACV_USD_Total += parseUSDValue(contract.ACV_USD__c);
-            varTCV_USD_Total += parseUSDValue(contract.TCV_USD__c);
-            varMRR_USD_Total += parseUSDValue(contract.MRR_USD__c);
-            
             // Contract counting logic (exact flow replication)
             if (contract.StartDate > today && contract.Exclude_from_Status_Updates__c == false) {
                 varN_FutureContracts += 1;
@@ -162,6 +147,53 @@ public class AccountRollupBatch implements Database.Batchable<sObject> {
             }
         }
         
+        // CRITICAL BUSINESS LOGIC: Expired Contract Revenue Preservation
+        // "if all contracts are expired that's when we preserve the expired amount"
+        shouldPreserveExpiredRevenue = (varN_ActiveContracts == 0 && 
+                                       varN_FutureContracts == 0 && 
+                                       varN_NumExpiredContracts > 0 &&
+                                       !varB_AllContractsCancelled);
+        
+        if (shouldPreserveExpiredRevenue) {
+            // PRESERVE existing revenue - don't nullify, don't recalculate
+            System.debug('AccountRollupBatch: Preserving expired revenue for account ' + account.Id + 
+                        ' (Active: ' + varN_ActiveContracts + ', Future: ' + varN_FutureContracts + 
+                        ', Expired: ' + varN_NumExpiredContracts + ')');
+            
+            // Keep existing ARR/ACV/TCV values, but still update USD fields if needed
+            // Parse existing USD values for status calculations
+            varARR_USD_Total = parseUSDValue(account.ARR_USD__c);
+            varACV_USD_Total = parseUSDValue(account.ACV_USD__c);
+            varTCV_USD_Total = parseUSDValue(account.TCV_USD__c);
+            varMRR_USD_Total = parseUSDValue(account.MRR_USD__c);
+            
+        } else {
+            // STANDARD LOGIC: Nullify then recalculate revenue from active contracts
+            account.ARR__c = 0;
+            account.Incremental_ARR__c = 0;
+            account.ACV__c = 0;
+            account.TCV__c = 0;
+            
+            for (Contract contract : account.Contracts) {
+                if (contract.StartDate <= today && 
+                    contract.EndDate >= today && 
+                    contract.Exclude_from_Status_Updates__c == false) {
+                    
+                    // Add revenue for ACTIVE contracts only (exact flow logic)
+                    account.ARR__c += contract.ARR__c != null ? contract.ARR__c : 0;
+                    account.ACV__c += contract.ACV__c != null ? contract.ACV__c : 0;
+                    account.TCV__c += contract.TCV__c != null ? contract.TCV__c : 0;
+                    account.Incremental_ARR__c += contract.Incremental_ARR__c != null ? contract.Incremental_ARR__c : 0;
+                    
+                    // USD aggregation for ACTIVE contracts only (exact flow formulas)
+                    varARR_USD_Total += parseUSDValue(contract.ARR_USD__c);
+                    varACV_USD_Total += parseUSDValue(contract.ACV_USD__c);
+                    varTCV_USD_Total += parseUSDValue(contract.TCV_USD__c);
+                    varMRR_USD_Total += parseUSDValue(contract.MRR_USD__c);
+                }
+            }
+        }
+        
         // Step 7: Account_Status decision (v42 enhanced logic)
         String newStatus = determineAccountStatus(account, varN_ActiveContracts, varN_FutureContracts, 
                                                  varN_NumExpiredContracts, varB_HasOpenRenewal, 
@@ -171,7 +203,11 @@ public class AccountRollupBatch implements Database.Batchable<sObject> {
         }
         
         // Step 8: Calculate MRR (exact flow formula)
-        account.MRR__c = account.ARR__c != null ? account.ARR__c / 12 : 0;
+        // Only recalculate MRR if we're not preserving expired revenue
+        if (!shouldPreserveExpiredRevenue) {
+            account.MRR__c = account.ARR__c != null ? account.ARR__c / 12 : 0;
+        }
+        // If preserving, keep existing MRR value
         
         // Step 9: Format USD fields (exact flow logic)
         try {

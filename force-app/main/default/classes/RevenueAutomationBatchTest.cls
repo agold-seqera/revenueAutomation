@@ -210,13 +210,19 @@ public class RevenueAutomationBatchTest {
         Account testAccount = [SELECT Id FROM Account LIMIT 1];
         
         Contract expiredContract = TestDataFactory.createContract(testAccount.Id, 'Expired Contract');
-        expiredContract.Status = 'Expired';
+        expiredContract.Status = 'Draft';
         expiredContract.StartDate = Date.today().addDays(-400);
         expiredContract.EndDate = Date.today().addDays(-10);
         expiredContract.ARR__c = 75000; // Historical revenue data
         expiredContract.TCV__c = 75000;
         expiredContract.ARR_USD__c = null; // USD fields empty
         insert expiredContract;
+        
+        // Update to Activated then Expired (following proper lifecycle)
+        expiredContract.Status = 'Activated';
+        update expiredContract;
+        expiredContract.Status = 'Expired';
+        update expiredContract;
         
         Test.startTest();
         
@@ -245,13 +251,17 @@ public class RevenueAutomationBatchTest {
         Account testAccount = [SELECT Id FROM Account LIMIT 1];
         
         Contract populatedContract = TestDataFactory.createContract(testAccount.Id, 'USD Populated Contract');
-        populatedContract.Status = 'Activated';
+        populatedContract.Status = 'Draft';
         populatedContract.StartDate = Date.today().addDays(-10);
         populatedContract.EndDate = Date.today().addDays(355);
         populatedContract.ARR__c = 100000;
         populatedContract.ARR_USD__c = '$100,000.00'; // Already populated
         populatedContract.TCV_USD__c = '$100,000.00';
         insert populatedContract;
+        
+        // Update to Activated (following proper lifecycle)
+        populatedContract.Status = 'Activated';
+        update populatedContract;
         
         Test.startTest();
         
@@ -412,5 +422,121 @@ public class RevenueAutomationBatchTest {
         
         // Test should complete without exceptions (error handling should catch issues)
         System.assert(true, 'Batch execution should handle errors gracefully');
+    }
+    
+    @isTest
+    static void testAccountRollupBatch_ExpiredRevenuePreservation() {
+        // Test the critical business logic: preserve revenue when all contracts are expired
+        
+        // Create account with expired contract that has revenue
+        Account testAccount = new Account(Name = 'Expired Revenue Test', CurrencyIsoCode = 'USD');
+        insert testAccount;
+        
+        // Create contract that will be expired (EndDate in the past)
+        Contract expiredContract = new Contract(
+            AccountId = testAccount.Id,
+            Status = 'Draft',
+            StartDate = Date.today().addDays(-365),
+            EndDate = Date.today().addDays(-1), // Expired yesterday
+            ARR__c = 50000,
+            ACV__c = 50000,
+            TCV__c = 50000,
+            MRR__c = 4166.67
+        );
+        insert expiredContract;
+        
+        // Update to Activated (following proper lifecycle)
+        expiredContract.Status = 'Activated';
+        update expiredContract;
+        
+        // Set initial account revenue (simulating previous active state)
+        testAccount.ARR__c = 50000;
+        testAccount.ACV__c = 50000;
+        testAccount.TCV__c = 50000;
+        testAccount.MRR__c = 4166.67;
+        testAccount.Has_Contracts__c = true;
+        update testAccount;
+        
+        Test.startTest();
+        
+        // Run AccountRollupBatch
+        AccountRollupBatch batch = new AccountRollupBatch();
+        Database.executeBatch(batch);
+        
+        Test.stopTest();
+        
+        // Verify revenue was PRESERVED (not nullified)
+        Account updatedAccount = [SELECT Id, ARR__c, ACV__c, TCV__c, MRR__c, Status__c 
+                                 FROM Account WHERE Id = :testAccount.Id];
+        
+        System.assertEquals(50000, updatedAccount.ARR__c, 'ARR should be preserved for expired-only account');
+        System.assertEquals(50000, updatedAccount.ACV__c, 'ACV should be preserved for expired-only account');
+        System.assertEquals(50000, updatedAccount.TCV__c, 'TCV should be preserved for expired-only account');
+        System.assertEquals(4166.67, updatedAccount.MRR__c, 'MRR should be preserved for expired-only account');
+        
+        // Status should be determined by the expired contract logic
+        System.assertNotEquals(null, updatedAccount.Status__c, 'Account should have a status');
+    }
+    
+    @isTest
+    static void testAccountRollupBatch_ActiveContractsOverrideExpired() {
+        // Test that active contracts still override expired revenue (normal case)
+        
+        // Create account
+        Account testAccount = new Account(Name = 'Mixed Contract Test', CurrencyIsoCode = 'USD');
+        insert testAccount;
+        
+        // Create expired contract with old revenue
+        Contract expiredContract = new Contract(
+            AccountId = testAccount.Id,
+            Status = 'Draft',
+            StartDate = Date.today().addDays(-365),
+            EndDate = Date.today().addDays(-1), // Expired
+            ARR__c = 30000,
+            ACV__c = 30000,
+            TCV__c = 30000
+        );
+        insert expiredContract;
+        
+        // Create active contract with current revenue
+        Contract activeContract = new Contract(
+            AccountId = testAccount.Id,
+            Status = 'Draft',
+            StartDate = Date.today().addDays(-30),
+            EndDate = Date.today().addDays(335), // Active
+            ARR__c = 75000,
+            ACV__c = 75000,
+            TCV__c = 75000
+        );
+        insert activeContract;
+        
+        // Update to Activated (following proper lifecycle)
+        expiredContract.Status = 'Activated';
+        activeContract.Status = 'Activated';
+        update new List<Contract>{expiredContract, activeContract};
+        
+        // Set account with old revenue
+        testAccount.ARR__c = 30000;
+        testAccount.ACV__c = 30000;
+        testAccount.TCV__c = 30000;
+        testAccount.Has_Contracts__c = true;
+        update testAccount;
+        
+        Test.startTest();
+        
+        // Run AccountRollupBatch
+        AccountRollupBatch batch = new AccountRollupBatch();
+        Database.executeBatch(batch);
+        
+        Test.stopTest();
+        
+        // Verify revenue was RECALCULATED from active contract only
+        Account updatedAccount = [SELECT Id, ARR__c, ACV__c, TCV__c, Status__c 
+                                 FROM Account WHERE Id = :testAccount.Id];
+        
+        System.assertEquals(75000, updatedAccount.ARR__c, 'ARR should be recalculated from active contract only');
+        System.assertEquals(75000, updatedAccount.ACV__c, 'ACV should be recalculated from active contract only');
+        System.assertEquals(75000, updatedAccount.TCV__c, 'TCV should be recalculated from active contract only');
+        System.assertEquals('Active', updatedAccount.Status__c, 'Account should be Active with active contracts');
     }
 }

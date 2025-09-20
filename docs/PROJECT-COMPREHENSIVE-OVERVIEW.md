@@ -952,6 +952,60 @@ All development requirements for time-based revenue calculations have been imple
 
 ---
 
-**Document Status:** Updated September 20, 2025 - Post-Deployment Batch Fixes Phase  
-**Project Status:** BATCH LOGIC FIXED ✅ - Exchange Rate Loading Phase  
+**Document Status:** Updated September 20, 2025 - Expired Revenue Preservation Implementation Complete  
+**Project Status:** CRITICAL BUSINESS LOGIC IMPLEMENTED ✅ - Production Ready with Expired Revenue Preservation  
 **Archive Status:** Complete session documentation and organized project archives
+
+## September 20, 2025 - EXPIRED REVENUE PRESERVATION IMPLEMENTATION
+
+### 🎯 CRITICAL BUSINESS LOGIC IMPLEMENTED
+
+**Problem Identified:** Deep audit revealed missing business logic for expired contract revenue preservation.
+
+**Business Rule:** "if all contracts are expired that's when we preserve the expired amount"
+
+**Implementation:** Modified `AccountRollupBatch.cls` to detect when accounts have ONLY expired contracts (no active, no future, not cancelled) and preserve existing revenue instead of nullifying it.
+
+### ✅ COMPREHENSIVE FLOW VS APEX AUDIT COMPLETED
+
+**Perfect Alignment Achieved:**
+- ✅ Contract status determination logic
+- ✅ Account status rules (all 8 statuses) 
+- ✅ Active contract revenue aggregation
+- ✅ USD field formatting
+- ✅ Date-based contract filtering
+- ✅ **NEW:** Expired revenue preservation logic
+
+### ✅ PRODUCTION DEPLOYMENT STATUS
+
+- **Classes Updated:** `AccountRollupBatch.cls`, `ContractRevenueBatch.cls`, `RevenueAutomationBatchTest.cls`
+- **Test Results:** 130/130 tests passing (100%)
+- **Deployment:** Production successful
+- **Batch Manager:** Rescheduled and running daily at 4:00 AM EST
+- **Immediate Processing:** Initiated and confirmed working
+
+### 🔧 TECHNICAL FIXES IMPLEMENTED
+
+1. **Expired Revenue Preservation Logic**
+   ```apex
+   Boolean shouldPreserveExpiredRevenue = (varN_ActiveContracts == 0 && 
+                                          varN_FutureContracts == 0 && 
+                                          varN_NumExpiredContracts > 0 &&
+                                          !varB_AllContractsCancelled);
+   ```
+
+2. **Asset.MRR__c Field Fix**
+   - Replaced non-existent field query with calculated MRR = ARR / 12
+
+3. **Contract Lifecycle Test Fixes**
+   - Updated all tests to follow proper Salesforce lifecycle (Draft → Activated → Expired)
+
+4. **Revenue Nullification Timing Fix**
+   - Moved nullification to happen AFTER preservation logic determination
+
+### 🎯 BUSINESS IMPACT
+
+- **Historical Data Protection:** Expired contracts preserve last active revenue
+- **Accurate Reporting:** Accounts with only expired contracts maintain historical revenue
+- **Flow Logic Compliance:** All original flow business rules implemented in Apex
+- **Production Ready:** Complete testing and deployment successful

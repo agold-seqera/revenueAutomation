@@ -30,7 +30,7 @@ public class ContractRevenueBatch implements Database.Batchable<sObject> {
             SELECT Id, Status, StartDate, EndDate, Exclude_from_Status_Updates__c,
                    ARR__c, ACV__c, TCV__c, MRR__c, Active_ARR__c, Previous_ARR__c, Incremental_ARR__c,
                    ARR_USD__c, ACV_USD__c, TCV_USD__c, MRR_USD__c, Active_ARR_USD__c,
-                   (SELECT Id, ARR__c, MRR__c, Total_Value__c, Total_Price__c, Exchange_Rate__c,
+                   (SELECT Id, ARR__c, Total_Value__c, Total_Price__c, Exchange_Rate__c,
                            Start_Date__c, End_Date__c, ProductFamily, Exclude_from_Status_Updates__c
                     FROM Assets__r 
                     WHERE Exclude_from_Status_Updates__c = false)
@@ -164,8 +164,9 @@ public class ContractRevenueBatch implements Database.Batchable<sObject> {
                                      (asset.Exchange_Rate__c != null ? asset.Exchange_Rate__c : 1);
                 Decimal forACV_USD = (asset.Total_Price__c != null ? asset.Total_Price__c : 0) * 
                                      (asset.Exchange_Rate__c != null ? asset.Exchange_Rate__c : 1);
-                Decimal forMRR_USD = (asset.MRR__c != null ? asset.MRR__c : 0) * 
-                                     (asset.Exchange_Rate__c != null ? asset.Exchange_Rate__c : 1);
+                // Calculate MRR from ARR (MRR = ARR / 12)
+                Decimal assetMRR = (asset.ARR__c != null ? asset.ARR__c / 12 : 0);
+                Decimal forMRR_USD = assetMRR * (asset.Exchange_Rate__c != null ? asset.Exchange_Rate__c : 1);
                 
                 varARR_Total += forARR_USD;
                 varACV_Total += forACV_USD;
@@ -207,8 +208,9 @@ public class ContractRevenueBatch implements Database.Batchable<sObject> {
                                          (asset.Exchange_Rate__c != null ? asset.Exchange_Rate__c : 1);
                     Decimal forACV_USD = (asset.Total_Price__c != null ? asset.Total_Price__c : 0) * 
                                          (asset.Exchange_Rate__c != null ? asset.Exchange_Rate__c : 1);
-                    Decimal forMRR_USD = (asset.MRR__c != null ? asset.MRR__c : 0) * 
-                                         (asset.Exchange_Rate__c != null ? asset.Exchange_Rate__c : 1);
+                    // Calculate MRR from ARR (MRR = ARR / 12)
+                    Decimal assetMRR = (asset.ARR__c != null ? asset.ARR__c / 12 : 0);
+                    Decimal forMRR_USD = assetMRR * (asset.Exchange_Rate__c != null ? asset.Exchange_Rate__c : 1);
                     
                     varARR_Total += forARR_USD;
                     varACV_Total += forACV_USD;

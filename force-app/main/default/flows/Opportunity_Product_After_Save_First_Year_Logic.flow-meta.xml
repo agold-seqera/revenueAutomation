@@ -30,6 +30,13 @@
             </value>
         </assignmentItems>
         <assignmentItems>
+            <assignToReference>varR_OLItoUpdate.Include_in_ARR_Sum__c</assignToReference>
+            <operator>Assign</operator>
+            <value>
+                <stringValue>No</stringValue>
+            </value>
+        </assignmentItems>
+        <assignmentItems>
             <assignToReference>varR_OLItoUpdate.Id</assignToReference>
             <operator>Assign</operator>
             <value>
@@ -50,6 +57,13 @@
             <operator>Assign</operator>
             <value>
                 <booleanValue>true</booleanValue>
+            </value>
+        </assignmentItems>
+        <assignmentItems>
+            <assignToReference>varR_OLItoUpdate.Include_in_ARR_Sum__c</assignToReference>
+            <operator>Assign</operator>
+            <value>
+                <stringValue>Yes</stringValue>
             </value>
         </assignmentItems>
         <assignmentItems>
@@ -92,7 +106,7 @@
     <formulas>
         <name>forD_EarliestTermPlusOneYear</name>
         <dataType>Date</dataType>
-        <expression>IF(ISNULL({!Get_Opportunity_Details.Contract_Start_Date__c}), {!Get_First_Related_Line_Item_by_Term.Term_Start_Date__c} + 365, {!Get_Opportunity_Details.Contract_Start_Date__c} + 365)</expression>
+        <expression>IF(ISNULL({!Get_Opportunity_Details.Contract_Start_Date__c}), {!Get_First_Related_Line_Item_by_Term.Term_Start_Date__c} + 364, {!Get_Opportunity_Details.Contract_Start_Date__c} + 364)</expression>
     </formulas>
     <interviewLabel>Opportunity {!$Flow.CurrentDateTime}</interviewLabel>
     <label>Opportunity Product After Save | First Year Logic</label>
@@ -229,7 +243,7 @@
         <recordTriggerType>CreateAndUpdate</recordTriggerType>
         <triggerType>RecordAfterSave</triggerType>
     </start>
-    <status>Draft</status>
+    <status>Active</status>
     <variables>
         <name>colVarR_OLIsToUpdate</name>
         <dataType>SObject</dataType>

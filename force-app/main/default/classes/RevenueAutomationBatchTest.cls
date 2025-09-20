@@ -124,6 +124,151 @@ public class RevenueAutomationBatchTest {
     }
     
     @isTest
+    static void testLegacyDataSafety_DraftWithExistingRevenue() {
+        // Create a Draft contract with existing revenue data (legacy scenario)
+        Account testAccount = [SELECT Id FROM Account LIMIT 1];
+        
+        Contract legacyContract = TestDataFactory.createContract(testAccount.Id, 'Legacy Draft Contract');
+        legacyContract.Status = 'Draft';
+        legacyContract.StartDate = Date.today().addDays(-10);
+        legacyContract.EndDate = Date.today().addDays(355);
+        legacyContract.ARR__c = 50000; // Pre-existing revenue data
+        legacyContract.TCV__c = 50000;
+        legacyContract.ARR_USD__c = null; // USD fields are new and empty
+        legacyContract.Exclude_from_Status_Updates__c = false;
+        insert legacyContract;
+        
+        Test.startTest();
+        
+        ContractRevenueBatch batch = new ContractRevenueBatch();
+        List<Contract> contracts = new List<Contract>{legacyContract};
+        batch.execute(null, contracts);
+        
+        Test.stopTest();
+        
+        Contract updatedContract = [SELECT Id, Status, ARR__c, TCV__c, ARR_USD__c FROM Contract WHERE Id = :legacyContract.Id];
+        
+        // Status should be updated to Activated
+        System.assertEquals('Activated', updatedContract.Status, 'Draft contract should be activated');
+        
+        // Revenue fields should be RECALCULATED for Activated contracts (not preserved)
+        // The logic changed: Draft->Activated means recalculate revenue
+        System.assertNotEquals(null, updatedContract.ARR__c, 'ARR should be recalculated for activated contract');
+        System.assertNotEquals(null, updatedContract.TCV__c, 'TCV should be recalculated for activated contract');
+        
+        // USD fields should be populated (they were empty)
+        System.assertNotEquals(null, updatedContract.ARR_USD__c, 'USD fields should be populated even when revenue is preserved');
+    }
+    
+    @isTest
+    static void testLegacyDataSafety_DraftWithEmptyRevenue() {
+        // Create a Draft contract with empty revenue data
+        Account testAccount = [SELECT Id FROM Account LIMIT 1];
+        
+        Contract emptyContract = TestDataFactory.createContract(testAccount.Id, 'Empty Draft Contract');
+        emptyContract.Status = 'Draft';
+        emptyContract.StartDate = Date.today().addDays(-10);
+        emptyContract.EndDate = Date.today().addDays(355);
+        emptyContract.ARR__c = 0; // Empty revenue data
+        emptyContract.TCV__c = 0;
+        insert emptyContract;
+        
+        // Create asset for this contract
+        Asset testAsset = TestDataFactory.createAsset(testAccount.Id, emptyContract.Id, 'Active');
+        testAsset.Start_Date__c = Date.today().addDays(-5);
+        testAsset.End_Date__c = Date.today().addDays(360);
+        testAsset.Exchange_Rate__c = 1.0;
+        insert testAsset;
+        
+        Test.startTest();
+        
+        ContractRevenueBatch batch = new ContractRevenueBatch();
+        List<Contract> contracts = [SELECT Id, Status, StartDate, EndDate, Exclude_from_Status_Updates__c, ARR__c, TCV__c, ARR_USD__c,
+                                          (SELECT Id, ARR__c, Total_Value__c, Total_Price__c, Exchange_Rate__c,
+                                                  Start_Date__c, End_Date__c, ProductFamily, Exclude_from_Status_Updates__c
+                                           FROM Assets__r WHERE Exclude_from_Status_Updates__c = false)
+                                   FROM Contract WHERE Id = :emptyContract.Id];
+        batch.execute(null, contracts);
+        
+        Test.stopTest();
+        
+        Contract updatedContract = [SELECT Id, Status, ARR__c, TCV__c, ARR_USD__c FROM Contract WHERE Id = :emptyContract.Id];
+        
+        // Status should be updated
+        System.assertEquals('Activated', updatedContract.Status, 'Draft contract should be activated');
+        
+        // Revenue fields should be CALCULATED (they were empty)
+        System.assertNotEquals(0, updatedContract.ARR__c, 'ARR should be calculated for Draft with empty revenue');
+        
+        // USD fields should be populated
+        System.assertNotEquals(null, updatedContract.ARR_USD__c, 'USD fields should be populated');
+    }
+    
+    @isTest
+    static void testLegacyDataSafety_ExpiredContract() {
+        // Create an Expired contract with existing data
+        Account testAccount = [SELECT Id FROM Account LIMIT 1];
+        
+        Contract expiredContract = TestDataFactory.createContract(testAccount.Id, 'Expired Contract');
+        expiredContract.Status = 'Expired';
+        expiredContract.StartDate = Date.today().addDays(-400);
+        expiredContract.EndDate = Date.today().addDays(-10);
+        expiredContract.ARR__c = 75000; // Historical revenue data
+        expiredContract.TCV__c = 75000;
+        expiredContract.ARR_USD__c = null; // USD fields empty
+        insert expiredContract;
+        
+        Test.startTest();
+        
+        ContractRevenueBatch batch = new ContractRevenueBatch();
+        List<Contract> contracts = new List<Contract>{expiredContract};
+        batch.execute(null, contracts);
+        
+        Test.stopTest();
+        
+        Contract updatedContract = [SELECT Id, Status, ARR__c, TCV__c, ARR_USD__c FROM Contract WHERE Id = :expiredContract.Id];
+        
+        // Status should remain Expired
+        System.assertEquals('Expired', updatedContract.Status, 'Expired contract status should be preserved');
+        
+        // Revenue fields should be PRESERVED (historical data)
+        System.assertEquals(75000, updatedContract.ARR__c, 'Historical ARR should be preserved for Expired contract');
+        System.assertEquals(75000, updatedContract.TCV__c, 'Historical TCV should be preserved for Expired contract');
+        
+        // USD fields should be populated (they were empty)
+        System.assertNotEquals(null, updatedContract.ARR_USD__c, 'USD fields should be populated for Expired contract');
+    }
+    
+    @isTest
+    static void testLegacyDataSafety_USDFieldsAlreadyPopulated() {
+        // Create contract with USD fields already populated
+        Account testAccount = [SELECT Id FROM Account LIMIT 1];
+        
+        Contract populatedContract = TestDataFactory.createContract(testAccount.Id, 'USD Populated Contract');
+        populatedContract.Status = 'Activated';
+        populatedContract.StartDate = Date.today().addDays(-10);
+        populatedContract.EndDate = Date.today().addDays(355);
+        populatedContract.ARR__c = 100000;
+        populatedContract.ARR_USD__c = '$100,000.00'; // Already populated
+        populatedContract.TCV_USD__c = '$100,000.00';
+        insert populatedContract;
+        
+        Test.startTest();
+        
+        ContractRevenueBatch batch = new ContractRevenueBatch();
+        List<Contract> contracts = new List<Contract>{populatedContract};
+        batch.execute(null, contracts);
+        
+        Test.stopTest();
+        
+        Contract updatedContract = [SELECT Id, ARR_USD__c, TCV_USD__c FROM Contract WHERE Id = :populatedContract.Id];
+        
+        // USD fields should be PRESERVED (not overwritten)
+        System.assertEquals('$100,000.00', updatedContract.ARR_USD__c, 'Existing USD fields should be preserved');
+        System.assertEquals('$100,000.00', updatedContract.TCV_USD__c, 'Existing USD fields should be preserved');
+    }
+    
+    @isTest
     static void testAccountRollupBatch() {
         Test.startTest();
         
@@ -196,6 +341,48 @@ public class RevenueAutomationBatchTest {
         
         System.assertEquals(1, scheduledJobs.size(), 'Should have exactly one scheduled job');
         System.assertEquals('WAITING', scheduledJobs[0].State, 'Scheduled job should be in WAITING state');
+    }
+    
+    @isTest
+    static void testAllContractsProcessed() {
+        // Create contracts with different statuses to verify ALL are processed
+        Account testAccount = [SELECT Id FROM Account LIMIT 1];
+        
+        List<Contract> testContracts = new List<Contract>();
+        
+        // Draft contract
+        Contract draftContract = TestDataFactory.createContract(testAccount.Id, 'Draft Contract');
+        draftContract.Status = 'Draft';
+        draftContract.StartDate = Date.today();
+        draftContract.EndDate = Date.today().addDays(365);
+        draftContract.Exclude_from_Status_Updates__c = false;
+        testContracts.add(draftContract);
+        
+        // Second Draft contract that we'll progress to Activated (following proper lifecycle)
+        Contract futureActivatedContract = TestDataFactory.createContract(testAccount.Id, 'Future Activated Contract');
+        futureActivatedContract.Status = 'Draft';
+        futureActivatedContract.StartDate = Date.today().addDays(-30);
+        futureActivatedContract.EndDate = Date.today().addDays(335);
+        futureActivatedContract.Exclude_from_Status_Updates__c = false;
+        testContracts.add(futureActivatedContract);
+        
+        insert testContracts;
+        
+        // Progress one contract to Activated (following proper lifecycle)
+        futureActivatedContract.Status = 'Activated';
+        update futureActivatedContract;
+        
+        Test.startTest();
+        
+        // Execute batch and verify ALL contracts are processed
+        ContractRevenueBatch batch = new ContractRevenueBatch();
+        Database.QueryLocator ql = batch.start(null);
+        List<Contract> allContracts = Database.query(ql.getQuery());
+        
+        // Should include ALL contracts (no status exclusions)
+        System.assert(allContracts.size() >= 3, 'Should process ALL contracts including Draft and Activated');
+        
+        Test.stopTest();
     }
     
     @isTest

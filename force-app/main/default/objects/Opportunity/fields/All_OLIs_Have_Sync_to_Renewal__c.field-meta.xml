@@ -1,8 +1,0 @@
-<?xml version="1.0" encoding="UTF-8"?>
-<CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
-    <fullName>All_OLIs_Have_Sync_to_Renewal__c</fullName>
-    <defaultValue>false</defaultValue>
-    <label>All OLIs Have Sync to Renewal</label>
-    <trackFeedHistory>false</trackFeedHistory>
-    <type>Checkbox</type>
-</CustomField>

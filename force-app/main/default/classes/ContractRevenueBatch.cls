@@ -21,8 +21,9 @@
 public class ContractRevenueBatch implements Database.Batchable<sObject> {
     
     /**
-     * Query contracts matching exact flow criteria:
-     * Status != null AND Status != 'Expired'
+     * Query ALL contracts for legacy data safe processing:
+     * - Include Draft, Activated, Expired, and null status contracts
+     * - Legacy data protection: only populate empty fields
      */
     public Database.QueryLocator start(Database.BatchableContext bc) {
         return Database.getQueryLocator([
@@ -34,7 +35,7 @@ public class ContractRevenueBatch implements Database.Batchable<sObject> {
                     FROM Assets__r 
                     WHERE Exclude_from_Status_Updates__c = false)
             FROM Contract 
-            WHERE Status != null AND Status != 'Expired'
+            // Process ALL contracts - no status exclusions for legacy data safety
         ]);
     }
     
@@ -82,42 +83,46 @@ public class ContractRevenueBatch implements Database.Batchable<sObject> {
     }
     
     /**
-     * Replicate exact Contract flow logic for single contract
+     * Legacy-safe Contract processing logic
      * 
-     * Flow Sequence:
-     * 1. Check_Contract_Start_End_Dates decision
-     * 2. If within dates → Assign_Contract_Status_Activated → Nullify_Revenue_Fields
-     * 3. If after end date → Assign_Contract_Status_Expired → Update_Contract
-     * 4. If before start date → Exit (no processing)
-     * 5. Get_Related_Assets → Loop_Related_Assets
-     * 6. For each asset: Add_Revenue_Totals → Is_Asset_Active decision
-     * 7. If asset active: Add_Active_ARR
-     * 8. Format currency using CurrencyFormatterHelper
-     * 9. Assign final calculations (MRR, Incremental ARR)
-     * 10. Update_Contract
+     * Processing Rules:
+     * 1. Status Updates: Handle Draft→Activated, Activated maintenance, Expired preservation
+     * 2. Revenue Fields: Only populate if empty (Draft) or always recalculate (Active/Activated)
+     * 3. USD Fields: Only populate if currently empty/null
+     * 4. Expired Contracts: Preserve existing data, only fill gaps
      */
     private Contract processContract(Contract contract, Date today) {
         Boolean needsUpdate = false;
         
-        // Step 1: Check_Contract_Start_End_Dates decision logic
+        // Step 1: Handle status updates (including Draft → Activated)
         String newStatus = determineContractStatus(contract, today);
         if (newStatus != null) {
             contract.Status = newStatus;
             needsUpdate = true;
         }
         
-        // Step 2: Exit early if before start date (flow logic)
-        if (contract.StartDate > today) {
-            return needsUpdate ? contract : null;
+        // Step 2: Determine if we should populate revenue fields (legacy data safe)
+        Boolean shouldPopulateRevenue = false;
+        if (contract.Status == 'Draft' || contract.Status == null) {
+            // Legacy Draft/null: Only if revenue fields are empty
+            if (contract.ARR__c == null || contract.ARR__c == 0) {
+                shouldPopulateRevenue = true;
+            }
+        } else if (contract.Status == 'Activated') {
+            // Activated contracts: Always recalculate (automation managed)
+            shouldPopulateRevenue = true;
         }
+        // Expired contracts: Never recalculate revenue (preserve historical)
         
-        // Step 3: Nullify_Revenue_Fields (exact flow logic)
-        contract.ARR__c = 0;
-        contract.Active_ARR__c = 0;
-        contract.ACV__c = 0;
-        contract.MRR__c = 0;
-        contract.TCV__c = 0;
-        needsUpdate = true;
+        // Step 3: Revenue calculations (conditional for legacy data safety)
+        if (shouldPopulateRevenue) {
+            // Nullify and recalculate revenue fields
+            contract.ARR__c = 0;
+            contract.Active_ARR__c = 0;
+            contract.ACV__c = 0;
+            contract.MRR__c = 0;
+            contract.TCV__c = 0;
+            needsUpdate = true;
         
         // Step 4: Process related assets (Get_Related_Assets + Loop_Related_Assets)
         Decimal varARR_Total = 0;
@@ -170,94 +175,155 @@ public class ContractRevenueBatch implements Database.Batchable<sObject> {
             }
         }
         
-        // Step 5: Format currency using CurrencyFormatterHelper (exact flow logic)
-        try {
-            // Format_Currency_Action_1: Format ARR (USD)
-            CurrencyFormatterHelper.FormatInput request1 = new CurrencyFormatterHelper.FormatInput();
-            request1.amount = varARR_Total;
-            List<CurrencyFormatterHelper.FormatInput> requests1 = new List<CurrencyFormatterHelper.FormatInput>{request1};
-            List<CurrencyFormatterHelper.FormatOutput> responses1 = CurrencyFormatterHelper.formatCurrency(requests1);
-            contract.ARR_USD__c = responses1[0].formattedAmount;
-            
-            // Format_Currency_Action_2: Format ACV (USD)
-            CurrencyFormatterHelper.FormatInput request2 = new CurrencyFormatterHelper.FormatInput();
-            request2.amount = varACV_Total;
-            List<CurrencyFormatterHelper.FormatInput> requests2 = new List<CurrencyFormatterHelper.FormatInput>{request2};
-            List<CurrencyFormatterHelper.FormatOutput> responses2 = CurrencyFormatterHelper.formatCurrency(requests2);
-            contract.ACV_USD__c = responses2[0].formattedAmount;
-            
-            // Format_Currency_Action_3: Format TCV (USD)
-            CurrencyFormatterHelper.FormatInput request3 = new CurrencyFormatterHelper.FormatInput();
-            request3.amount = varTCV_Total;
-            List<CurrencyFormatterHelper.FormatInput> requests3 = new List<CurrencyFormatterHelper.FormatInput>{request3};
-            List<CurrencyFormatterHelper.FormatOutput> responses3 = CurrencyFormatterHelper.formatCurrency(requests3);
-            contract.TCV_USD__c = responses3[0].formattedAmount;
-            
-            // Format_Currency_Action_4: Format Active ARR (USD)
-            CurrencyFormatterHelper.FormatInput request4 = new CurrencyFormatterHelper.FormatInput();
-            request4.amount = varActiveARR_Total;
-            List<CurrencyFormatterHelper.FormatInput> requests4 = new List<CurrencyFormatterHelper.FormatInput>{request4};
-            List<CurrencyFormatterHelper.FormatOutput> responses4 = CurrencyFormatterHelper.formatCurrency(requests4);
-            contract.Active_ARR_USD__c = responses4[0].formattedAmount;
-            
-            // Format_Currency_Action_5: Format MRR (USD)
-            CurrencyFormatterHelper.FormatInput request5 = new CurrencyFormatterHelper.FormatInput();
-            request5.amount = varMRR_Total;
-            List<CurrencyFormatterHelper.FormatInput> requests5 = new List<CurrencyFormatterHelper.FormatInput>{request5};
-            List<CurrencyFormatterHelper.FormatOutput> responses5 = CurrencyFormatterHelper.formatCurrency(requests5);
-            contract.MRR_USD__c = responses5[0].formattedAmount;
-            
-        } catch (Exception e) {
-            System.debug(LoggingLevel.ERROR, 'ContractRevenueBatch: Currency formatting error for Contract ' + contract.Id + ': ' + e.getMessage());
         }
         
-        // Step 6: Assign_Revenue_Calculations (exact flow formulas)
-        // forC_MRR formula: ARR / 12
-        contract.MRR__c = contract.ARR__c != null ? contract.ARR__c / 12 : 0;
+        // Step 4: USD fields - Only populate if empty (legacy data safe)
+        Boolean shouldPopulateUSD = (String.isBlank(contract.ARR_USD__c) || 
+                                    String.isBlank(contract.TCV_USD__c) || 
+                                    String.isBlank(contract.ACV_USD__c) ||
+                                    String.isBlank(contract.MRR_USD__c) ||
+                                    String.isBlank(contract.Active_ARR_USD__c));
         
-        // forC_iARR formula: IF(ISNULL(Previous_ARR), ARR, ARR - Previous_ARR)
-        if (contract.Previous_ARR__c == null) {
-            contract.Incremental_ARR__c = contract.ARR__c != null ? contract.ARR__c : 0;
-        } else {
-            contract.Incremental_ARR__c = (contract.ARR__c != null ? contract.ARR__c : 0) - contract.Previous_ARR__c;
+        if (shouldPopulateUSD) {
+            // Calculate USD totals from assets (even if revenue fields weren't recalculated)
+            Decimal varARR_Total = 0;
+            Decimal varACV_Total = 0;
+            Decimal varTCV_Total = 0;
+            Decimal varActiveARR_Total = 0;
+            Decimal varMRR_Total = 0;
+            
+            for (Asset asset : contract.Assets__r) {
+                // TCV calculation
+                Decimal forTCV_USD = (asset.Total_Value__c != null ? asset.Total_Value__c : 0) * 
+                                     (asset.Exchange_Rate__c != null ? asset.Exchange_Rate__c : 1);
+                varTCV_Total += forTCV_USD;
+                
+                // Active asset USD calculations
+                if (asset.Start_Date__c <= today && 
+                    asset.End_Date__c >= today && 
+                    asset.ProductFamily != 'Professional Service') {
+                    
+                    Decimal forARR_USD = (asset.ARR__c != null ? asset.ARR__c : 0) * 
+                                         (asset.Exchange_Rate__c != null ? asset.Exchange_Rate__c : 1);
+                    Decimal forACV_USD = (asset.Total_Price__c != null ? asset.Total_Price__c : 0) * 
+                                         (asset.Exchange_Rate__c != null ? asset.Exchange_Rate__c : 1);
+                    Decimal forMRR_USD = (asset.MRR__c != null ? asset.MRR__c : 0) * 
+                                         (asset.Exchange_Rate__c != null ? asset.Exchange_Rate__c : 1);
+                    
+                    varARR_Total += forARR_USD;
+                    varACV_Total += forACV_USD;
+                    varActiveARR_Total += forARR_USD;
+                    varMRR_Total += forMRR_USD;
+                }
+            }
+            
+            // Step 5: Format currency using CurrencyFormatterHelper (only if USD fields empty)
+            try {
+                if (String.isBlank(contract.ARR_USD__c)) {
+                    CurrencyFormatterHelper.FormatInput request1 = new CurrencyFormatterHelper.FormatInput();
+                    request1.amount = varARR_Total;
+                    List<CurrencyFormatterHelper.FormatInput> requests1 = new List<CurrencyFormatterHelper.FormatInput>{request1};
+                    List<CurrencyFormatterHelper.FormatOutput> responses1 = CurrencyFormatterHelper.formatCurrency(requests1);
+                    contract.ARR_USD__c = responses1[0].formattedAmount;
+                }
+                
+                if (String.isBlank(contract.ACV_USD__c)) {
+                    CurrencyFormatterHelper.FormatInput request2 = new CurrencyFormatterHelper.FormatInput();
+                    request2.amount = varACV_Total;
+                    List<CurrencyFormatterHelper.FormatInput> requests2 = new List<CurrencyFormatterHelper.FormatInput>{request2};
+                    List<CurrencyFormatterHelper.FormatOutput> responses2 = CurrencyFormatterHelper.formatCurrency(requests2);
+                    contract.ACV_USD__c = responses2[0].formattedAmount;
+                }
+                
+                if (String.isBlank(contract.TCV_USD__c)) {
+                    CurrencyFormatterHelper.FormatInput request3 = new CurrencyFormatterHelper.FormatInput();
+                    request3.amount = varTCV_Total;
+                    List<CurrencyFormatterHelper.FormatInput> requests3 = new List<CurrencyFormatterHelper.FormatInput>{request3};
+                    List<CurrencyFormatterHelper.FormatOutput> responses3 = CurrencyFormatterHelper.formatCurrency(requests3);
+                    contract.TCV_USD__c = responses3[0].formattedAmount;
+                }
+                
+                if (String.isBlank(contract.Active_ARR_USD__c)) {
+                    CurrencyFormatterHelper.FormatInput request4 = new CurrencyFormatterHelper.FormatInput();
+                    request4.amount = varActiveARR_Total;
+                    List<CurrencyFormatterHelper.FormatInput> requests4 = new List<CurrencyFormatterHelper.FormatInput>{request4};
+                    List<CurrencyFormatterHelper.FormatOutput> responses4 = CurrencyFormatterHelper.formatCurrency(requests4);
+                    contract.Active_ARR_USD__c = responses4[0].formattedAmount;
+                }
+                
+                if (String.isBlank(contract.MRR_USD__c)) {
+                    CurrencyFormatterHelper.FormatInput request5 = new CurrencyFormatterHelper.FormatInput();
+                    request5.amount = varMRR_Total;
+                    List<CurrencyFormatterHelper.FormatInput> requests5 = new List<CurrencyFormatterHelper.FormatInput>{request5};
+                    List<CurrencyFormatterHelper.FormatOutput> responses5 = CurrencyFormatterHelper.formatCurrency(requests5);
+                    contract.MRR_USD__c = responses5[0].formattedAmount;
+                }
+                
+                needsUpdate = true;
+                
+            } catch (Exception e) {
+                System.debug(LoggingLevel.ERROR, 'ContractRevenueBatch: Currency formatting error for Contract ' + contract.Id + ': ' + e.getMessage());
+            }
         }
         
-        return contract;
+        
+        // Step 6: Final calculations (only if revenue fields were recalculated)
+        if (shouldPopulateRevenue) {
+            // forC_MRR formula: ARR / 12
+            contract.MRR__c = contract.ARR__c != null ? contract.ARR__c / 12 : 0;
+            
+            // forC_iARR formula: IF(ISNULL(Previous_ARR), ARR, ARR - Previous_ARR)
+            if (contract.Previous_ARR__c == null) {
+                contract.Incremental_ARR__c = contract.ARR__c != null ? contract.ARR__c : 0;
+            } else {
+                contract.Incremental_ARR__c = (contract.ARR__c != null ? contract.ARR__c : 0) - contract.Previous_ARR__c;
+            }
+        }
+        
+        return needsUpdate ? contract : null;
     }
     
     /**
-     * Replicate exact Contract flow status determination logic
+     * Legacy-safe Contract status determination logic
      * 
-     * Flow Decision: Check_Contract_Start_End_Dates
-     * Rule 1: Before_Start_Date (StartDate > TODAY) → Exit flow
-     * Rule 2: Within_Start_End_Dates (StartDate <= TODAY AND EndDate >= TODAY AND Exclude_from_Status_Updates__c = false) → Activated
-     * Rule 3: After_End_Date (EndDate < TODAY AND Status != 'Expired' AND Exclude_from_Status_Updates__c = false) → Expired
+     * Status Rules:
+     * Rule 1: Draft/null → Activated (if within date range)
+     * Rule 2: Within Start & End Dates → Activated
+     * Rule 3: After End Date → Expired
+     * Rule 4: Before Start Date → No change (preserve Draft for future activation)
      */
     private String determineContractStatus(Contract contract, Date today) {
-        // Rule 1: Before Start Date - no status change (flow exits)
-        if (contract.StartDate > today) {
-            System.debug('ContractRevenueBatch: Contract ' + contract.Id + ' is before start date');
+        // Skip if excluded from status updates
+        if (contract.Exclude_from_Status_Updates__c == true) {
             return null;
         }
         
-        // Rule 2: Within Start & End Dates
+        // Rule 1: Draft/null contracts within date range should be Activated
+        if ((contract.Status == 'Draft' || contract.Status == null) &&
+            contract.StartDate <= today && 
+            contract.EndDate >= today) {
+            System.debug('ContractRevenueBatch: Draft/null Contract ' + contract.Id + ' should be Activated');
+            return 'Activated';
+        }
+        
+        // Rule 2: Within Start & End Dates (for non-Draft contracts)
         if (contract.StartDate <= today && 
             contract.EndDate >= today && 
-            contract.Exclude_from_Status_Updates__c == false) {
-            System.debug('ContractRevenueBatch: Contract ' + contract.Id + ' should be Activated. StartDate: ' + contract.StartDate + ', EndDate: ' + contract.EndDate + ', Today: ' + today + ', Exclude: ' + contract.Exclude_from_Status_Updates__c);
+            contract.Status != 'Activated') {
+            System.debug('ContractRevenueBatch: Contract ' + contract.Id + ' should be Activated');
             return 'Activated';
         }
         
         // Rule 3: After End Date
         if (contract.EndDate < today && 
-            contract.Status != 'Expired' && 
-            contract.Exclude_from_Status_Updates__c == false) {
+            contract.Status != 'Expired') {
             System.debug('ContractRevenueBatch: Contract ' + contract.Id + ' should be Expired');
             return 'Expired';
         }
         
-        // Default: No status change
-        System.debug('ContractRevenueBatch: Contract ' + contract.Id + ' no status change. StartDate: ' + contract.StartDate + ', EndDate: ' + contract.EndDate + ', Status: ' + contract.Status + ', Exclude: ' + contract.Exclude_from_Status_Updates__c);
-        return null;
+        // Rule 4: Before Start Date - preserve current status (no change)
+        // This allows Draft contracts to remain Draft until their start date
+        
+        return null; // No status change needed
     }
 }

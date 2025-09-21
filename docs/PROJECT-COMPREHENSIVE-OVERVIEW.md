@@ -1,8 +1,8 @@
 # GTM-146 Revenue Automation - Comprehensive Project Overview
 
 **Document Purpose:** Complete project context for agent handoff and collaboration  
-**Last Updated:** September 20, 2025 - 09:58 EDT  
-**Project Status:** Post-Deployment | Batch Logic Fixed | Exchange Rate Loading Phase
+**Last Updated:** September 21, 2025 - 14:45 EDT  
+**Project Status:** Post-Deployment | Business Logic Enhanced | Exchange Rate Loading Phase
 
 ---
 
@@ -952,8 +952,8 @@ All development requirements for time-based revenue calculations have been imple
 
 ---
 
-**Document Status:** Updated September 20, 2025 - Expired Revenue Preservation Implementation Complete  
-**Project Status:** CRITICAL BUSINESS LOGIC IMPLEMENTED ✅ - Production Ready with Expired Revenue Preservation  
+**Document Status:** Updated September 21, 2025 - Business Rule Enhancement Complete  
+**Project Status:** BUSINESS LOGIC ENHANCED ✅ - Production Ready with Complete Account Lifecycle Management  
 **Archive Status:** Complete session documentation and organized project archives
 
 ## September 20, 2025 - EXPIRED REVENUE PRESERVATION IMPLEMENTATION
@@ -1009,3 +1009,54 @@ All development requirements for time-based revenue calculations have been imple
 - **Accurate Reporting:** Accounts with only expired contracts maintain historical revenue
 - **Flow Logic Compliance:** All original flow business rules implemented in Apex
 - **Production Ready:** Complete testing and deployment successful
+
+---
+
+## September 21, 2025 - ACCOUNT LIFECYCLE BUSINESS RULE ENHANCEMENT
+
+### 🎯 CRITICAL BUSINESS LOGIC GAP IDENTIFIED AND RESOLVED
+
+**Problem Identified:** Overnight batch analysis revealed accounts with expired contracts and lost renewals were staying "Active" instead of transitioning to "Churned" status.
+
+**Business Scenario:** Account has expired contracts with lost renewal opportunities marked as "Churn" but no active contracts remaining.
+
+**Gap in Logic:** Original flow rules did not handle the case where:
+- Account Status = "Active" 
+- Active Contracts = 0 (all expired)
+- Has Lost Renewal = true
+
+### ✅ NEW BUSINESS RULE IMPLEMENTED
+
+**Rule 5: Active_With_Lost_Renewal_No_Active**
+```apex
+// Rule 5: Active_With_Lost_Renewal_No_Active (NEW - direct to Churned)
+if (account.Status__c == 'Active' && 
+    activeContracts == 0 && 
+    hasLostRenewal) {
+    return 'Churned';
+}
+```
+
+**Business Logic:** Active accounts with no active contracts and lost renewals should transition directly to "Churned" status.
+
+### ✅ PRODUCTION DEPLOYMENT STATUS
+
+- **Class Updated:** `AccountRollupBatch.cls` (Rule 5 added)
+- **Test Results:** 130/130 tests passing (100%)
+- **Deployment:** Production successful at 14:42 EDT
+- **Validation:** CDC account successfully transitioned Active → Churned
+- **Batch Manager:** Rescheduled (Job ID: 08ePn00000tp7hY)
+
+### 🔧 TECHNICAL IMPLEMENTATION
+
+1. **New Business Rule Priority:** Added as Rule 5 (before existing Rule 6)
+2. **Rule Documentation:** Updated all rule comments and numbering
+3. **Test Validation:** Verified with real account data (CDC: 001fJ000021YDQmQAO)
+4. **Immediate Effect:** Account status updated at 2025-09-21 14:43:35
+
+### 🎯 BUSINESS IMPACT
+
+- **Complete Account Lifecycle:** Fills critical gap in account status management
+- **Accurate Churn Tracking:** Ensures proper churning status for expired accounts with lost renewals
+- **Data Integrity:** Maintains consistent account lifecycle for reporting and analytics
+- **Customer Success Alignment:** Proper status tracking for customer health monitoring

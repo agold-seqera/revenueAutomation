@@ -251,10 +251,11 @@ public class AccountRollupBatch implements Database.Batchable<sObject> {
      * 2. Null_To_Prospect: Status = null AND varN_FutureContracts = 0 AND varN_ActiveContracts = 0 → Prospect
      * 3. Only_Future_Contracts: varN_FutureContracts > 0 AND varN_ActiveContracts = 0 → Prospect
      * 4. Churning_To_Churned: Status = 'Active (Churning)' AND varN_ActiveContracts = 0 AND varN_NumExpiredContracts > 0 → Churned
-     * 5. Active_With_Lost_Renewal_Enhanced: Status = 'Active' AND varN_ActiveContracts > 0 AND varB_HasLostRenewal = true AND varB_HasOpenRenewal = false → Active (Churning)
-     * 6. Expired_Contracts_With_Open_Renewal: varN_ActiveContracts = 0 AND varN_NumExpiredContracts > 0 AND varB_HasOpenRenewal = true → Active (Churning)
-     * 7. Has_Active_Contracts: varN_ActiveContracts > 0 → Active
-     * 8. Default: No change
+     * 5. Active_With_Lost_Renewal_No_Active: Status = 'Active' AND varN_ActiveContracts = 0 AND varB_HasLostRenewal = true → Churned
+     * 6. Active_With_Lost_Renewal_Enhanced: Status = 'Active' AND varN_ActiveContracts > 0 AND varB_HasLostRenewal = true AND varB_HasOpenRenewal = false → Active (Churning)
+     * 7. Expired_Contracts_With_Open_Renewal: varN_ActiveContracts = 0 AND varN_NumExpiredContracts > 0 AND varB_HasOpenRenewal = true → Active (Churning)
+     * 8. Has_Active_Contracts: varN_ActiveContracts > 0 → Active
+     * 9. Default: No change
      */
     private String determineAccountStatus(Account account, Decimal activeContracts, Decimal futureContracts, 
                                         Decimal expiredContracts, Boolean hasOpenRenewal, 
@@ -280,7 +281,14 @@ public class AccountRollupBatch implements Database.Batchable<sObject> {
             return 'Churned';
         }
         
-        // Rule 5: Active_With_Lost_Renewal_Enhanced (v42)
+        // Rule 5: Active_With_Lost_Renewal_No_Active (NEW - direct to Churned)
+        if (account.Status__c == 'Active' && 
+            activeContracts == 0 && 
+            hasLostRenewal) {
+            return 'Churned';
+        }
+        
+        // Rule 6: Active_With_Lost_Renewal_Enhanced (v42)
         if (account.Status__c == 'Active' && 
             activeContracts > 0 && 
             hasLostRenewal && 
@@ -288,19 +296,19 @@ public class AccountRollupBatch implements Database.Batchable<sObject> {
             return 'Active (Churning)';
         }
         
-        // Rule 6: Expired_Contracts_With_Open_Renewal (v42)
+        // Rule 7: Expired_Contracts_With_Open_Renewal (v42)
         if (activeContracts == 0 && 
             expiredContracts > 0 && 
             hasOpenRenewal) {
             return 'Active (Churning)';
         }
         
-        // Rule 7: Has_Active_Contracts
+        // Rule 8: Has_Active_Contracts
         if (activeContracts > 0) {
             return 'Active';
         }
         
-        // Rule 8: Default - no change
+        // Rule 9: Default - no change
         return null;
     }
 }

@@ -28,8 +28,14 @@ public with sharing class ContractTriggerHandler {
         // Use @future method to process USD formatting in separate transaction
         // This ensures Assets are fully committed and visible
         // CRITICAL: Skip @future calls when running in batch context to avoid AsyncException
-        if (!contractIdsToFormat.isEmpty() && !System.isBatch()) {
-            processContractFieldsAsync(contractIdsToFormat);
+        if (!contractIdsToFormat.isEmpty()) {
+            if (System.isBatch() || System.isFuture()) {
+                // In batch or future context: use synchronous processing
+                processContractFieldsSync(contractIdsToFormat);
+            } else {
+                // In regular trigger context: use @future for separation
+                processContractFieldsAsync(contractIdsToFormat);
+            }
         }
         
         // Update Account contract fields for all INSERT and UPDATE operations
@@ -251,10 +257,26 @@ public with sharing class ContractTriggerHandler {
         return contractRates;
     }
     
+    /**
+     * Synchronous version of contract fields processing for batch context
+     * Avoids AsyncException when called from batch operations
+     */
+    public static void processContractFieldsSync(Set<Id> contractIds) {
+        processContractFieldsInternal(contractIds);
+    }
+    
     // @future method to process USD formatting in separate transaction
     // This ensures Assets are fully committed and visible when USD calculation runs
     @future
     public static void processContractFieldsAsync(Set<Id> contractIds) {
+        processContractFieldsInternal(contractIds);
+    }
+    
+    /**
+     * Internal method that contains the actual contract processing logic
+     * Used by both sync and async versions
+     */
+    private static void processContractFieldsInternal(Set<Id> contractIds) {
         try {
             // Query contracts with all necessary fields
             List<Contract> contracts = [
@@ -309,8 +331,14 @@ public with sharing class ContractTriggerHandler {
             }
         }
         
-        if (!accountIds.isEmpty() && !System.isBatch()) {
-            updateAccountFieldsAsync(accountIds);
+        if (!accountIds.isEmpty()) {
+            if (System.isBatch() || System.isFuture()) {
+                // In batch or future context: use synchronous processing
+                updateAccountFieldsSync(accountIds);
+            } else {
+                // In regular trigger context: use @future for separation
+                updateAccountFieldsAsync(accountIds);
+            }
         }
     }
     
@@ -326,13 +354,35 @@ public with sharing class ContractTriggerHandler {
             }
         }
         
-        if (!accountIds.isEmpty() && !System.isBatch()) {
-            updateAccountFieldsAsync(accountIds);
+        if (!accountIds.isEmpty()) {
+            if (System.isBatch() || System.isFuture()) {
+                // In batch or future context: use synchronous processing
+                updateAccountFieldsSync(accountIds);
+            } else {
+                // In regular trigger context: use @future for separation
+                updateAccountFieldsAsync(accountIds);
+            }
         }
+    }
+    
+    /**
+     * Synchronous version of account fields update for batch context
+     * Avoids AsyncException when called from batch operations
+     */
+    public static void updateAccountFieldsSync(Set<Id> accountIds) {
+        updateAccountFieldsInternal(accountIds);
     }
     
     @future
     private static void updateAccountFieldsAsync(Set<Id> accountIds) {
+        updateAccountFieldsInternal(accountIds);
+    }
+    
+    /**
+     * Internal method that contains the actual account fields update logic
+     * Used by both sync and async versions
+     */
+    private static void updateAccountFieldsInternal(Set<Id> accountIds) {
         if (isProcessingAccountFields) return;
         
         try {

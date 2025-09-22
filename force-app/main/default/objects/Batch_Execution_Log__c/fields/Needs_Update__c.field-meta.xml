@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>Needs_Update__c</fullName>
+    <defaultValue>false</defaultValue>
+    <description>Whether processContract determined the contract needed updating</description>
+    <externalId>false</externalId>
+    <inlineHelpText>True if needsUpdate was set to true in processContract method</inlineHelpText>
+    <label>Needs Update</label>
+    <trackTrending>false</trackTrending>
+    <type>Checkbox</type>
+</CustomField>

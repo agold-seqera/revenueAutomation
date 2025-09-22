@@ -1,8 +1,8 @@
 # GTM-146 Revenue Automation - Comprehensive Project Overview
 
 **Document Purpose:** Complete project context for agent handoff and collaboration  
-**Last Updated:** September 22, 2025 - 16:30 EDT  
-**Project Status:** USD Reporting Fields Implementation Complete | Full Analytics Capability Deployed
+**Last Updated:** September 22, 2025 - 19:39 EDT  
+**Project Status:** USD Reporting Fields + AsyncException Fix Complete | Production-Ready Automation
 
 ---
 
@@ -1087,6 +1087,52 @@ shouldPreserveExpiredRevenue = preserveAllExpired || preserveExpiredWithOpenRene
 
 ---
 
+## September 22, 2025 - CRITICAL ASYNCEXCEPTION FIX DEPLOYED
+
+### 🚨 SYSTEM-CRITICAL ISSUE RESOLVED
+
+**Problem Discovered:** Scheduled batch automation failing silently with `System.AsyncException` - all revenue automation broken in scheduled context.
+
+**Root Cause:** `ContractTriggerHandler` attempting to call `@future` methods from batch execution context, which is prohibited in Salesforce.
+
+**Impact:** Complete failure of scheduled revenue processing, contracts not updating correctly, silent system degradation.
+
+### ✅ CONTEXT-AWARE ASYNC HANDLING IMPLEMENTED
+
+**Solution Architecture:**
+```apex
+// Context-aware method selection in ContractTriggerHandler
+if (System.isBatch() || System.isFuture()) {
+    // Batch/Future context: Use synchronous processing
+    processContractFieldsSync(contractIds);
+    updateAccountFieldsSync(accountIds);
+} else {
+    // Regular trigger: Use @future for transaction separation
+    processContractFieldsAsync(contractIds);
+    updateAccountFieldsAsync(accountIds);
+}
+```
+
+**Implementation Details:**
+- **New Synchronous Methods:** `processContractFieldsSync()`, `updateAccountFieldsSync()`
+- **Shared Internal Logic:** `processContractFieldsInternal()`, `updateAccountFieldsInternal()`
+- **Context Detection:** `System.isBatch() || System.isFuture()`
+- **Comprehensive Logging:** `Batch_Execution_Log__c` for full audit trail
+
+**Validation Results:**
+- ✅ **Scheduled Automation Restored:** Revenue batches work correctly in all contexts
+- ✅ **Test Contract Updated:** ARR 550,000 → 300,000 (correct calculation)
+- ✅ **Clean Execution Logs:** No AsyncException errors in batch processing
+- ✅ **Production Deployment:** All 137 tests passing (100% success rate)
+
+**Business Impact:**
+- **System Reliability:** Scheduled automation fully operational
+- **Data Integrity:** Revenue calculations execute correctly across all contexts
+- **Silent Failures Eliminated:** Comprehensive error logging and handling
+- **Production Stability:** Critical system component restored to full functionality
+
+---
+
 ## September 22, 2025 - USD REPORTING FIELDS IMPLEMENTATION COMPLETE
 
 ### 🎯 ADVANCED ANALYTICS CAPABILITY DEPLOYED
@@ -1187,8 +1233,8 @@ shouldPreserveExpiredRevenue = preserveAllExpired || preserveExpiredWithOpenRene
 
 ---
 
-**Document Status:** Updated September 22, 2025 - USD Reporting Fields Implementation Complete  
-**Project Status:** FULL ANALYTICS CAPABILITY DEPLOYED ✅ - Comprehensive Revenue Intelligence Platform  
+**Document Status:** Updated September 22, 2025 - AsyncException Fix + USD Reporting Fields Complete  
+**Project Status:** PRODUCTION-READY AUTOMATION ✅ - Scheduled Batches + Full Analytics Deployed  
 **Archive Status:** All session documentation organized and comprehensive
 
 ## September 20, 2025 - EXPIRED REVENUE PRESERVATION IMPLEMENTATION

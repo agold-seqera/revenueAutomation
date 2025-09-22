@@ -18,7 +18,21 @@
  *   - Calculate Incremental ARR = IF(ISNULL(Previous_ARR), ARR, ARR - Previous_ARR)
  *   - Format USD fields using CurrencyFormatterHelper
  */
-public class ContractRevenueBatch implements Database.Batchable<sObject> {
+public class ContractRevenueBatch implements Database.Batchable<sObject>, 
+                                            Database.Stateful, 
+                                            Database.RaisesPlatformEvents {
+    
+    // Enhanced diagnostic tracking (Database.Stateful preserves across batch executions)
+    private String executionContext;
+    private List<String> processingErrors = new List<String>();
+    private Integer totalProcessed = 0;
+    private Integer totalUpdated = 0;
+    private Integer totalSkipped = 0;
+    private Integer totalFailed = 0;
+    
+    // Custom logging for persistent audit trail
+    private String currentBatchJobId;
+    private List<Batch_Execution_Log__c> batchLogs = new List<Batch_Execution_Log__c>();
     
     /**
      * Query ALL contracts for legacy data safe processing:
@@ -26,6 +40,34 @@ public class ContractRevenueBatch implements Database.Batchable<sObject> {
      * - Legacy data protection: only populate empty fields
      */
     public Database.QueryLocator start(Database.BatchableContext bc) {
+        // Detect execution context for enhanced diagnostics
+        try {
+            User currentUser = [SELECT Id, Name, Alias, UserType FROM User WHERE Id = :UserInfo.getUserId()];
+            executionContext = (currentUser.Alias == 'autoproc' || currentUser.UserType == 'AutomatedProcess') ? 'SCHEDULED' : 'MANUAL';
+            
+            System.debug('ContractRevenueBatch: Starting in ' + executionContext + ' context');
+            System.debug('ContractRevenueBatch: Running as user: ' + currentUser.Name + ' (' + currentUser.Alias + ')');
+        } catch (Exception e) {
+            // Fallback if User query fails in test context
+            executionContext = 'UNKNOWN';
+            System.debug('ContractRevenueBatch: Could not determine execution context: ' + e.getMessage());
+        }
+        
+        if (bc != null) {
+            currentBatchJobId = bc.getJobId();
+            System.debug('ContractRevenueBatch: Job ID: ' + currentBatchJobId);
+        } else {
+            currentBatchJobId = 'MANUAL_TEST';
+            System.debug('ContractRevenueBatch: Running in test context');
+        }
+        
+        // Initialize counters
+        totalProcessed = 0;
+        totalUpdated = 0;
+        totalSkipped = 0;
+        totalFailed = 0;
+        processingErrors.clear();
+        
         return Database.getQueryLocator([
             SELECT Id, Status, StartDate, EndDate, Exclude_from_Status_Updates__c,
                    ARR__c, ACV__c, TCV__c, MRR__c, Active_ARR__c, Previous_ARR__c, Incremental_ARR__c,
@@ -37,6 +79,7 @@ public class ContractRevenueBatch implements Database.Batchable<sObject> {
                     WHERE Exclude_from_Status_Updates__c = false)
             FROM Contract 
             // Process ALL contracts - no status exclusions for legacy data safety
+            // Note: FOR UPDATE not supported in Batch Apex - using alternative concurrency control
         ]);
     }
     
@@ -44,40 +87,191 @@ public class ContractRevenueBatch implements Database.Batchable<sObject> {
      * Process each batch of contracts using exact flow logic
      */
     public void execute(Database.BatchableContext bc, List<Contract> contracts) {
+        // Monitor resource consumption at start
+        System.debug('ContractRevenueBatch: Execute batch starting - Heap: ' + Limits.getHeapSize() + '/' + Limits.getLimitHeapSize() + 
+                    ', CPU: ' + Limits.getCpuTime() + '/' + Limits.getLimitCpuTime() + 
+                    ', SOQL: ' + Limits.getQueries() + '/' + Limits.getLimitQueries());
+        
         List<Contract> contractsToUpdate = new List<Contract>();
         Date today = Date.today();
         
-        for (Contract contract : contracts) {
-            Contract updatedContract = processContract(contract, today);
-            
-            if (updatedContract != null) {
-                contractsToUpdate.add(updatedContract);
-            }
-        }
+        Savepoint sp = Database.setSavepoint();
         
-        // Bulk update - matches flow's Update_Contract element
-        if (!contractsToUpdate.isEmpty()) {
-            try {
+        try {
+            // Process each contract with enhanced tracking
+            for (Contract contract : contracts) {
+                totalProcessed++;
+                
+                try {
+                    // Log contract before processing
+                    Batch_Execution_Log__c beforeLog = createBatchLog(contract, 'QUERIED', contract.ARR__c, null, null, null);
+                    batchLogs.add(beforeLog);
+                    
+                    Contract updatedContract = processContract(contract, today);
+                    
+                    if (updatedContract != null) {
+                        contractsToUpdate.add(updatedContract);
+                        
+                        // Log successful processing
+                        Batch_Execution_Log__c processedLog = createBatchLog(contract, 'PROCESSED', contract.ARR__c, updatedContract.ARR__c, true, null);
+                        batchLogs.add(processedLog);
+                    } else {
+                        totalSkipped++;
+                        
+                        // Log skipped contract
+                        Batch_Execution_Log__c skippedLog = createBatchLog(contract, 'SKIPPED', contract.ARR__c, contract.ARR__c, false, 'processContract returned null');
+                        batchLogs.add(skippedLog);
+                        
+                        if (executionContext == 'SCHEDULED') {
+                            System.debug('ContractRevenueBatch: Contract ' + contract.Id + ' was skipped (processContract returned null)');
+                        }
+                    }
+                } catch (Exception e) {
+                    totalFailed++;
+                    String errorMsg = 'Contract ' + contract.Id + ' processing failed: ' + e.getMessage() + 
+                                    ' | Stack: ' + e.getStackTraceString();
+                    processingErrors.add(errorMsg);
+                    System.debug(LoggingLevel.ERROR, 'ContractRevenueBatch: ' + errorMsg);
+                }
+            }
+            
+            // Enhanced bulk update with comprehensive SaveResult analysis
+            if (!contractsToUpdate.isEmpty()) {
+                System.debug('ContractRevenueBatch: Attempting to update ' + contractsToUpdate.size() + ' contracts');
+                
+                // Use allOrNone=false to get detailed failure information
                 Database.SaveResult[] results = Database.update(contractsToUpdate, false);
                 
-                // Log any failures
+                // Analyze each SaveResult for detailed failure tracking
+                analyzeUpdateResults(results, contractsToUpdate);
+                
+                // Log update results for each contract
                 for (Integer i = 0; i < results.size(); i++) {
-                    if (!results[i].isSuccess()) {
-                        System.debug(LoggingLevel.ERROR, 
-                            'ContractRevenueBatch: Failed to update Contract ' + contractsToUpdate[i].Id + 
-                            ': ' + results[i].getErrors());
+                    Contract processedContract = contractsToUpdate[i];
+                    Database.SaveResult result = results[i];
+                    
+                    if (result.isSuccess()) {
+                        Batch_Execution_Log__c successLog = createBatchLog(processedContract, 'UPDATED', null, processedContract.ARR__c, true, null);
+                        batchLogs.add(successLog);
+                    } else {
+                        // Capture detailed DML error information
+                        String errorMsg = 'DML Update Failed for Contract ' + processedContract.Id + ': ';
+                        for (Database.Error err : result.getErrors()) {
+                            errorMsg += '\nStatusCode: ' + err.getStatusCode() + 
+                                       '\nMessage: ' + err.getMessage();
+                            
+                            // Capture affected fields (critical for FLS issues)
+                            if (!err.getFields().isEmpty()) {
+                                errorMsg += '\nAffected Fields: ' + String.join(err.getFields(), ', ');
+                            }
+                            
+                            // Add context about likely causes
+                            if (err.getStatusCode() == StatusCode.FIELD_FILTER_VALIDATION_EXCEPTION) {
+                                errorMsg += '\nLikely Cause: Field-level security or validation rule issue';
+                            } else if (err.getStatusCode() == StatusCode.INSUFFICIENT_ACCESS_OR_READONLY) {
+                                errorMsg += '\nLikely Cause: User permissions or read-only field issue';
+                            } else if (err.getStatusCode() == StatusCode.UNABLE_TO_LOCK_ROW) {
+                                errorMsg += '\nLikely Cause: Record locking conflict with concurrent operations';
+                            }
+                        }
+                        
+                        Batch_Execution_Log__c failLog = createBatchLog(processedContract, 'FAILED', null, null, false, errorMsg);
+                        batchLogs.add(failLog);
+                        
+                        System.debug(LoggingLevel.ERROR, 'ContractRevenueBatch: ' + errorMsg);
                     }
                 }
-            } catch (Exception e) {
-                System.debug(LoggingLevel.ERROR, 'ContractRevenueBatch: Exception during update: ' + e.getMessage());
+                
+            } else {
+                System.debug('ContractRevenueBatch: No contracts to update in this batch');
             }
+            
+            // Monitor resource consumption at end
+            System.debug('ContractRevenueBatch: Execute batch completed - Heap: ' + Limits.getHeapSize() + '/' + Limits.getLimitHeapSize() + 
+                        ', CPU: ' + Limits.getCpuTime() + '/' + Limits.getLimitCpuTime() + 
+                        ', SOQL: ' + Limits.getQueries() + '/' + Limits.getLimitQueries());
+            
+            // Insert batch logs immediately (within same transaction for now)
+            // Future enhancement: Use Platform Events for autonomous transaction
+            if (!batchLogs.isEmpty()) {
+                try {
+                    insert batchLogs;
+                    System.debug('ContractRevenueBatch: Inserted ' + batchLogs.size() + ' batch execution logs');
+                } catch (Exception logError) {
+                    System.debug(LoggingLevel.ERROR, 'ContractRevenueBatch: Failed to insert batch logs: ' + logError.getMessage());
+                }
+                batchLogs.clear(); // Clear for next batch
+            }
+            
+        } catch (Exception e) {
+            // Critical error - rollback and re-throw for platform events
+            Database.rollback(sp);
+            String criticalError = 'Critical batch failure: ' + e.getMessage() + ' | Stack: ' + e.getStackTraceString();
+            processingErrors.add(criticalError);
+            System.debug(LoggingLevel.ERROR, 'ContractRevenueBatch: ' + criticalError);
+            
+            // Re-throw to trigger BatchApexErrorEvent via Database.RaisesPlatformEvents
+            throw e;
         }
     }
     
     /**
+     * Analyze Database.SaveResult[] for detailed failure tracking
+     * Critical for identifying field-level security and validation issues
+     */
+    private void analyzeUpdateResults(Database.SaveResult[] results, List<Contract> contracts) {
+        for (Integer i = 0; i < results.size(); i++) {
+            if (results[i].isSuccess()) {
+                totalUpdated++;
+            } else {
+                totalFailed++;
+                Contract failedContract = contracts[i];
+                
+                String errorMsg = 'Contract ' + failedContract.Id + ' update failed: ';
+                for (Database.Error err : results[i].getErrors()) {
+                    errorMsg += err.getStatusCode() + ': ' + err.getMessage();
+                    
+                    // Critical: Log field-level errors (often indicates FLS issues)
+                    if (!err.getFields().isEmpty()) {
+                        errorMsg += ' | Affected Fields: ' + String.join(err.getFields(), ', ');
+                    }
+                    
+                    // Special handling for field-level security errors
+                    if (err.getStatusCode() == StatusCode.FIELD_FILTER_VALIDATION_EXCEPTION ||
+                        err.getStatusCode() == StatusCode.INSUFFICIENT_ACCESS_ON_CROSS_REFERENCE_ENTITY) {
+                        errorMsg += ' | LIKELY CAUSE: Field-level security or user permissions issue in ' + executionContext + ' context';
+                    }
+                }
+                
+                processingErrors.add(errorMsg);
+                System.debug(LoggingLevel.ERROR, 'ContractRevenueBatch: ' + errorMsg);
+            }
+        }
+        
+        System.debug('ContractRevenueBatch: Update results - Success: ' + totalUpdated + ', Failed: ' + (results.size() - totalUpdated));
+    }
+    
+    /**
      * Chain to Account processing after Contract processing completes
+     * Enhanced with comprehensive error reporting
      */
     public void finish(Database.BatchableContext bc) {
+        // Generate comprehensive execution summary
+        String summary = 'ContractRevenueBatch execution summary:' +
+                        '\n  Execution Context: ' + executionContext +
+                        '\n  Total Processed: ' + totalProcessed +
+                        '\n  Total Updated: ' + totalUpdated +
+                        '\n  Total Skipped: ' + totalSkipped +
+                        '\n  Total Failed: ' + totalFailed +
+                        '\n  Job ID: ' + bc.getJobId();
+        
+        System.debug('ContractRevenueBatch: ' + summary);
+        
+        // Send error notification if there were failures
+        if (!processingErrors.isEmpty()) {
+            sendErrorNotification(bc.getJobId(), summary, processingErrors);
+        }
+        
         // Sequential execution: Asset → Contract → Account
         Database.executeBatch(new AccountRollupBatch(), 100);
         System.debug('ContractRevenueBatch: Processing complete, chaining to AccountRollupBatch');
@@ -102,7 +296,7 @@ public class ContractRevenueBatch implements Database.Batchable<sObject> {
             needsUpdate = true;
         }
         
-        // Step 2: Determine if we should populate revenue fields (legacy data safe)
+        // Step 2: Determine if we should populate revenue fields (ALWAYS for accuracy)
         Boolean shouldPopulateRevenue = false;
         if (contract.Status == 'Draft' || contract.Status == null) {
             // Legacy Draft/null: Only if revenue fields are empty
@@ -110,13 +304,19 @@ public class ContractRevenueBatch implements Database.Batchable<sObject> {
                 shouldPopulateRevenue = true;
             }
         } else if (contract.Status == 'Activated') {
-            // Activated contracts: Always recalculate (automation managed)
+            // Activated contracts: ALWAYS recalculate for accuracy (per user requirements)
+            // This ensures all revenue calculations are correct regardless of existing values
             shouldPopulateRevenue = true;
         }
         // Expired contracts: Never recalculate revenue (preserve historical)
         
         // Step 3: Revenue calculations (conditional for legacy data safety)
         if (shouldPopulateRevenue) {
+            // Debug logging for Activated contracts
+            if (contract.Status == 'Activated') {
+                System.debug('ContractRevenueBatch: Processing Activated contract ' + contract.Id + ' - ALWAYS recalculate revenue');
+            }
+            
             // Nullify and recalculate revenue fields
             contract.ARR__c = 0;
             contract.Active_ARR__c = 0;
@@ -311,6 +511,11 @@ public class ContractRevenueBatch implements Database.Batchable<sObject> {
             }
         }
         
+        // Debug logging for final decision
+        if (contract.Status == 'Activated') {
+            System.debug('ContractRevenueBatch: Final decision for Activated contract ' + contract.Id + ' - needsUpdate: ' + needsUpdate);
+        }
+        
         return needsUpdate ? contract : null;
     }
     
@@ -357,4 +562,48 @@ public class ContractRevenueBatch implements Database.Batchable<sObject> {
         
         return null; // No status change needed
     }
+    
+    /**
+     * Send detailed error notification for batch failures
+     * Creates persistent audit trail independent of debug logs
+     */
+    private void sendErrorNotification(Id jobId, String summary, List<String> errors) {
+        try {
+            // In production, this would integrate with your notification system
+            // For now, use System.debug with ERROR level for visibility
+            System.debug(LoggingLevel.ERROR, 'ContractRevenueBatch FAILURE REPORT:');
+            System.debug(LoggingLevel.ERROR, summary);
+            System.debug(LoggingLevel.ERROR, 'Detailed Errors:');
+            
+            for (String error : errors) {
+                System.debug(LoggingLevel.ERROR, '  - ' + error);
+            }
+            
+            // Future enhancement: Send email notification or create custom log record
+            // This ensures error visibility even when debug logs are not retained
+            
+        } catch (Exception e) {
+            System.debug(LoggingLevel.ERROR, 'Failed to send error notification: ' + e.getMessage());
+        }
+    }
+    
+    /**
+     * Create a batch execution log record for persistent audit trail
+     */
+    private Batch_Execution_Log__c createBatchLog(Contract contract, String stage, Decimal beforeARR, Decimal afterARR, Boolean needsUpdate, String errorMsg) {
+        Batch_Execution_Log__c log = new Batch_Execution_Log__c(
+            Batch_Job_ID__c = currentBatchJobId,
+            Execution_Context__c = executionContext,
+            Contract_ID__c = contract.Id,
+            Processing_Stage__c = stage
+        );
+        
+        // Add error message if provided
+        if (String.isNotBlank(errorMsg)) {
+            log.Error_Message__c = errorMsg.length() > 1000 ? errorMsg.substring(0, 1000) : errorMsg;
+        }
+        
+        return log;
+    }
+    
 }

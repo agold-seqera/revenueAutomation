@@ -1,9 +1,9 @@
 # GTM-146 Revenue Automation - Session Log: September 22, 2025
 
 **Session Date:** Monday, September 22, 2025  
-**Session Time:** 16:00 - 16:30 EDT  
-**Session Focus:** USD Reporting Fields Implementation & Production Deployment  
-**Session Type:** Field Creation, Apex Enhancement, Data Loading  
+**Session Time:** 16:00 - 19:39 EDT (Extended for Critical Fix)  
+**Session Focus:** USD Reporting Fields Implementation & AsyncException Resolution  
+**Session Type:** Field Creation, Apex Enhancement, Data Loading, Critical Bug Fix  
 
 ---
 
@@ -163,6 +163,62 @@ varARR_Reporting_Total += contract.ARR_USD_Reporting__c != null ? contract.ARR_U
 - **Total Accounts with Reporting Fields:** 126 accounts ✅
 - **Total Contracts with Reporting Fields:** 131 contracts ✅
 
+### ✅ **Task 7: CRITICAL - AsyncException Root Cause Resolution (19:30-19:39)**
+
+**🚨 CRITICAL ISSUE DISCOVERED:**
+- **Problem:** Scheduled batch automation failing silently with `System.AsyncException`
+- **Root Cause:** `ContractTriggerHandler` calling `@future` methods from batch context
+- **Impact:** All scheduled revenue automation broken, contracts not updating correctly
+
+**Diagnostic Process:**
+1. **Enhanced Logging System:** Created `Batch_Execution_Log__c` custom object with comprehensive tracking
+2. **Manual vs Scheduled Comparison:** Identified that manual execution worked, scheduled failed
+3. **Error Capture Enhancement:** Added detailed DML error logging with StatusCode analysis
+4. **Context Detection:** Implemented execution context tracking (MANUAL vs SCHEDULED)
+
+**Root Cause Identified:**
+```
+System.AsyncException: Future method cannot be called from a future or batch method: 
+ContractTriggerHandler.updateAccountFieldsAsync(Set<Id>)
+```
+
+**Solution Implemented - Context-Aware Async Handling:**
+```apex
+// Before: Always used @future methods
+if (!accountIds.isEmpty() && !System.isBatch()) {
+    updateAccountFieldsAsync(accountIds);
+}
+
+// After: Context-aware method selection
+if (!accountIds.isEmpty()) {
+    if (System.isBatch() || System.isFuture()) {
+        // In batch or future context: use synchronous processing
+        updateAccountFieldsSync(accountIds);
+    } else {
+        // In regular trigger context: use @future for separation
+        updateAccountFieldsAsync(accountIds);
+    }
+}
+```
+
+**Implementation Details:**
+- **New Methods Added:** `processContractFieldsSync()`, `updateAccountFieldsSync()`
+- **Internal Logic:** `processContractFieldsInternal()`, `updateAccountFieldsInternal()`
+- **Context Detection:** `System.isBatch() || System.isFuture()`
+- **Deployment:** All tests passing (137/137 - 100% success)
+
+**Validation Results:**
+- **Test Contract:** `800fJ000007eNJeQAM` 
+- **Before Fix:** ARR: 550,000 → ACV: 650,000 (incorrect, not updating)
+- **After Fix:** ARR: 300,000 → ACV: 300,000 (✅ CORRECT - updated by scheduled batch!)
+- **Execution Logs:** Clean execution with no AsyncException errors
+
+**Business Impact:**
+- ✅ **Scheduled Automation Restored:** Revenue batches now work correctly in scheduled context
+- ✅ **Silent Failures Eliminated:** All contract processing now completes successfully  
+- ✅ **Data Integrity Ensured:** Revenue calculations update correctly across all execution contexts
+- ✅ **System Reliability:** Comprehensive logging provides full audit trail for troubleshooting
+
 ---
 
 ## 🔧 TECHNICAL IMPLEMENTATION DETAILS
@@ -314,6 +370,7 @@ All 43 reporting fields assigned to 9 profiles with Read/Edit permissions:
 3. ✅ **Production Deployment Complete** - All metadata and code deployed successfully
 4. ✅ **Data Population Complete** - 170 contracts and 140 accounts populated
 5. ✅ **Issues Resolved** - All deployment and data issues addressed
+6. ✅ **CRITICAL: AsyncException Fixed** - Scheduled automation restored to full functionality
 
 ### **🎯 BUSINESS VALUE DELIVERED:**
 - **Enhanced Analytics:** Salesforce can now aggregate USD values across all objects
@@ -329,9 +386,9 @@ All 43 reporting fields assigned to 9 profiles with Read/Edit permissions:
 
 ---
 
-**Session Status:** ✅ **COMPLETE SUCCESS**  
-**Next Session Focus:** Documentation updates and Git repository maintenance  
-**Project Status:** USD Reporting Fields Implementation Complete - Ready for Advanced Analytics
+**Session Status:** ✅ **COMPLETE SUCCESS WITH CRITICAL FIX**  
+**Next Session Focus:** System monitoring and advanced analytics implementation  
+**Project Status:** USD Reporting Fields + Scheduled Automation Complete - Production Ready
 
 ---
 

@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>Unit_MRR_USD_Reporting__c</fullName>
+    <description>USD value in Number format for SFDC reporting and aggregation</description>
+    <externalId>false</externalId>
+    <formula>IF(ISBLANK(Exchange_Rate__c), 
+NULL, 
+ROUND(((Total_Value__c / Quantity) / 12) / Exchange_Rate__c, 2)
+)</formula>
+    <formulaTreatBlanksAs>BlankAsZero</formulaTreatBlanksAs>
+    <inlineHelpText>This field contains the same USD value as Unit MRR USD but in Number format to enable Salesforce reporting, rollups, and calculations.</inlineHelpText>
+    <label>Unit MRR (Reporting)</label>
+    <precision>18</precision>
+    <required>false</required>
+    <scale>2</scale>
+    <trackTrending>false</trackTrending>
+    <type>Number</type>
+    <unique>false</unique>
+</CustomField>

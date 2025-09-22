@@ -30,6 +30,7 @@ public class ContractRevenueBatch implements Database.Batchable<sObject> {
             SELECT Id, Status, StartDate, EndDate, Exclude_from_Status_Updates__c,
                    ARR__c, ACV__c, TCV__c, MRR__c, Active_ARR__c, Previous_ARR__c, Incremental_ARR__c,
                    ARR_USD__c, ACV_USD__c, TCV_USD__c, MRR_USD__c, Active_ARR_USD__c,
+                   ARR_USD_Reporting__c, ACV_USD_Reporting__c, TCV_USD_Reporting__c, MRR_USD_Reporting__c, Active_ARR_USD_Reporting__c,
                    (SELECT Id, ARR__c, Total_Value__c, Total_Price__c, Exchange_Rate__c,
                            Start_Date__c, End_Date__c, ProductFamily, Exclude_from_Status_Updates__c
                     FROM Assets__r 
@@ -138,7 +139,7 @@ public class ContractRevenueBatch implements Database.Batchable<sObject> {
             // Add_Revenue_Totals logic (exact flow replication)
             contract.TCV__c += asset.Total_Value__c != null ? asset.Total_Value__c : 0;
             
-            Decimal forTCV_USD = (asset.Total_Value__c != null ? asset.Total_Value__c : 0) * 
+            Decimal forTCV_USD = (asset.Total_Value__c != null ? asset.Total_Value__c : 0) / 
                                  (asset.Exchange_Rate__c != null ? asset.Exchange_Rate__c : 1);
             varTCV_Total += forTCV_USD;
             
@@ -159,14 +160,14 @@ public class ContractRevenueBatch implements Database.Batchable<sObject> {
                 contract.ACV__c += asset.Total_Price__c != null ? asset.Total_Price__c : 0;
                 contract.Active_ARR__c += asset.ARR__c != null ? asset.ARR__c : 0;
                 
-                // USD calculations (exact flow formulas)
-                Decimal forARR_USD = (asset.ARR__c != null ? asset.ARR__c : 0) * 
+                // USD calculations (corrected division formulas)
+                Decimal forARR_USD = (asset.ARR__c != null ? asset.ARR__c : 0) / 
                                      (asset.Exchange_Rate__c != null ? asset.Exchange_Rate__c : 1);
-                Decimal forACV_USD = (asset.Total_Price__c != null ? asset.Total_Price__c : 0) * 
+                Decimal forACV_USD = (asset.Total_Price__c != null ? asset.Total_Price__c : 0) / 
                                      (asset.Exchange_Rate__c != null ? asset.Exchange_Rate__c : 1);
                 // Calculate MRR from ARR (MRR = ARR / 12)
                 Decimal assetMRR = (asset.ARR__c != null ? asset.ARR__c / 12 : 0);
-                Decimal forMRR_USD = assetMRR * (asset.Exchange_Rate__c != null ? asset.Exchange_Rate__c : 1);
+                Decimal forMRR_USD = assetMRR / (asset.Exchange_Rate__c != null ? asset.Exchange_Rate__c : 1);
                 
                 varARR_Total += forARR_USD;
                 varACV_Total += forACV_USD;
@@ -194,8 +195,8 @@ public class ContractRevenueBatch implements Database.Batchable<sObject> {
             Decimal varMRR_Total = 0;
             
             for (Asset asset : contract.Assets__r) {
-                // TCV calculation
-                Decimal forTCV_USD = (asset.Total_Value__c != null ? asset.Total_Value__c : 0) * 
+                // TCV calculation (corrected division formula)
+                Decimal forTCV_USD = (asset.Total_Value__c != null ? asset.Total_Value__c : 0) / 
                                      (asset.Exchange_Rate__c != null ? asset.Exchange_Rate__c : 1);
                 varTCV_Total += forTCV_USD;
                 
@@ -204,13 +205,13 @@ public class ContractRevenueBatch implements Database.Batchable<sObject> {
                     asset.End_Date__c >= today && 
                     asset.ProductFamily != 'Professional Service') {
                     
-                    Decimal forARR_USD = (asset.ARR__c != null ? asset.ARR__c : 0) * 
+                    Decimal forARR_USD = (asset.ARR__c != null ? asset.ARR__c : 0) / 
                                          (asset.Exchange_Rate__c != null ? asset.Exchange_Rate__c : 1);
-                    Decimal forACV_USD = (asset.Total_Price__c != null ? asset.Total_Price__c : 0) * 
+                    Decimal forACV_USD = (asset.Total_Price__c != null ? asset.Total_Price__c : 0) / 
                                          (asset.Exchange_Rate__c != null ? asset.Exchange_Rate__c : 1);
                     // Calculate MRR from ARR (MRR = ARR / 12)
                     Decimal assetMRR = (asset.ARR__c != null ? asset.ARR__c / 12 : 0);
-                    Decimal forMRR_USD = assetMRR * (asset.Exchange_Rate__c != null ? asset.Exchange_Rate__c : 1);
+                    Decimal forMRR_USD = assetMRR / (asset.Exchange_Rate__c != null ? asset.Exchange_Rate__c : 1);
                     
                     varARR_Total += forARR_USD;
                     varACV_Total += forACV_USD;
@@ -265,6 +266,34 @@ public class ContractRevenueBatch implements Database.Batchable<sObject> {
                 
             } catch (Exception e) {
                 System.debug(LoggingLevel.ERROR, 'ContractRevenueBatch: Currency formatting error for Contract ' + contract.Id + ': ' + e.getMessage());
+            }
+            
+            // Step 5.5: Populate Number reporting fields (always populate if empty for aggregation)
+            try {
+                if (contract.ARR_USD_Reporting__c == null) {
+                    contract.ARR_USD_Reporting__c = varARR_Total;
+                }
+                
+                if (contract.ACV_USD_Reporting__c == null) {
+                    contract.ACV_USD_Reporting__c = varACV_Total;
+                }
+                
+                if (contract.TCV_USD_Reporting__c == null) {
+                    contract.TCV_USD_Reporting__c = varTCV_Total;
+                }
+                
+                if (contract.MRR_USD_Reporting__c == null) {
+                    contract.MRR_USD_Reporting__c = varMRR_Total;
+                }
+                
+                if (contract.Active_ARR_USD_Reporting__c == null) {
+                    contract.Active_ARR_USD_Reporting__c = varActiveARR_Total;
+                }
+                
+                needsUpdate = true;
+                
+            } catch (Exception e) {
+                System.debug(LoggingLevel.ERROR, 'ContractRevenueBatch: Number reporting field error for Contract ' + contract.Id + ': ' + e.getMessage());
             }
         }
         

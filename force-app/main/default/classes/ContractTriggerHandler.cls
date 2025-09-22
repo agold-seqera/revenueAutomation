@@ -27,7 +27,8 @@ public with sharing class ContractTriggerHandler {
         
         // Use @future method to process USD formatting in separate transaction
         // This ensures Assets are fully committed and visible
-        if (!contractIdsToFormat.isEmpty()) {
+        // CRITICAL: Skip @future calls when running in batch context to avoid AsyncException
+        if (!contractIdsToFormat.isEmpty() && !System.isBatch()) {
             processContractFieldsAsync(contractIdsToFormat);
         }
         
@@ -308,7 +309,7 @@ public with sharing class ContractTriggerHandler {
             }
         }
         
-        if (!accountIds.isEmpty()) {
+        if (!accountIds.isEmpty() && !System.isBatch()) {
             updateAccountFieldsAsync(accountIds);
         }
     }
@@ -325,7 +326,7 @@ public with sharing class ContractTriggerHandler {
             }
         }
         
-        if (!accountIds.isEmpty()) {
+        if (!accountIds.isEmpty() && !System.isBatch()) {
             updateAccountFieldsAsync(accountIds);
         }
     }

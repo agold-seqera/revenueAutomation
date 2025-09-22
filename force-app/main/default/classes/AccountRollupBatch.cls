@@ -22,8 +22,10 @@ public class AccountRollupBatch implements Database.Batchable<sObject> {
         return Database.getQueryLocator([
             SELECT Id, Status__c, ARR__c, ACV__c, TCV__c, MRR__c, Incremental_ARR__c,
                    ARR_USD__c, ACV_USD__c, TCV_USD__c, MRR_USD__c,
+                   ARR_USD_Reporting__c, ACV_USD_Reporting__c, TCV_USD_Reporting__c, MRR_USD_Reporting__c,
                    (SELECT Id, ARR__c, ACV__c, TCV__c, MRR__c, Incremental_ARR__c,
                            ARR_USD__c, ACV_USD__c, TCV_USD__c, MRR_USD__c,
+                           ARR_USD_Reporting__c, ACV_USD_Reporting__c, TCV_USD_Reporting__c, MRR_USD_Reporting__c,
                            StartDate, EndDate, Status, Exclude_from_Status_Updates__c,
                            Renewal_Opportunity__c,
                            Renewal_Opportunity__r.Id, Renewal_Opportunity__r.StageName, 
@@ -96,6 +98,12 @@ public class AccountRollupBatch implements Database.Batchable<sObject> {
         Decimal varTCV_USD_Total = 0;
         Decimal varMRR_USD_Total = 0;
         Decimal varIncrementalARR_USD_Total = 0;
+        
+        // Initialize Number reporting field totals
+        Decimal varARR_Reporting_Total = 0;
+        Decimal varACV_Reporting_Total = 0;
+        Decimal varTCV_Reporting_Total = 0;
+        Decimal varMRR_Reporting_Total = 0;
         
         // v42 Enhancement variables
         Boolean varB_HasOpenRenewal = false;
@@ -176,6 +184,12 @@ public class AccountRollupBatch implements Database.Batchable<sObject> {
             varTCV_USD_Total = parseUSDValue(account.TCV_USD__c);
             varMRR_USD_Total = parseUSDValue(account.MRR_USD__c);
             
+            // Parse existing Number reporting values
+            varARR_Reporting_Total = account.ARR_USD_Reporting__c != null ? account.ARR_USD_Reporting__c : 0;
+            varACV_Reporting_Total = account.ACV_USD_Reporting__c != null ? account.ACV_USD_Reporting__c : 0;
+            varTCV_Reporting_Total = account.TCV_USD_Reporting__c != null ? account.TCV_USD_Reporting__c : 0;
+            varMRR_Reporting_Total = account.MRR_USD_Reporting__c != null ? account.MRR_USD_Reporting__c : 0;
+            
         } else {
             // STANDARD LOGIC: Nullify then recalculate revenue from active contracts
             account.ARR__c = 0;
@@ -199,6 +213,12 @@ public class AccountRollupBatch implements Database.Batchable<sObject> {
                     varACV_USD_Total += parseUSDValue(contract.ACV_USD__c);
                     varTCV_USD_Total += parseUSDValue(contract.TCV_USD__c);
                     varMRR_USD_Total += parseUSDValue(contract.MRR_USD__c);
+                    
+                    // Number reporting field aggregation for ACTIVE contracts only
+                    varARR_Reporting_Total += contract.ARR_USD_Reporting__c != null ? contract.ARR_USD_Reporting__c : 0;
+                    varACV_Reporting_Total += contract.ACV_USD_Reporting__c != null ? contract.ACV_USD_Reporting__c : 0;
+                    varTCV_Reporting_Total += contract.TCV_USD_Reporting__c != null ? contract.TCV_USD_Reporting__c : 0;
+                    varMRR_Reporting_Total += contract.MRR_USD_Reporting__c != null ? contract.MRR_USD_Reporting__c : 0;
                 }
             }
         }
@@ -227,6 +247,16 @@ public class AccountRollupBatch implements Database.Batchable<sObject> {
             account.MRR_USD__c = '$' + String.valueOf(varMRR_USD_Total.setScale(2).format());
         } catch (Exception e) {
             System.debug(LoggingLevel.ERROR, 'AccountRollupBatch: USD formatting error for Account ' + account.Id + ': ' + e.getMessage());
+        }
+        
+        // Step 10: Populate Number reporting fields (for aggregation and reporting)
+        try {
+            account.ARR_USD_Reporting__c = varARR_Reporting_Total.setScale(2);
+            account.ACV_USD_Reporting__c = varACV_Reporting_Total.setScale(2);
+            account.TCV_USD_Reporting__c = varTCV_Reporting_Total.setScale(2);
+            account.MRR_USD_Reporting__c = varMRR_Reporting_Total.setScale(2);
+        } catch (Exception e) {
+            System.debug(LoggingLevel.ERROR, 'AccountRollupBatch: Number reporting field error for Account ' + account.Id + ': ' + e.getMessage());
         }
         
         return account;

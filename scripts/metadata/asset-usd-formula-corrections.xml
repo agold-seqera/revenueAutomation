@@ -1,0 +1,180 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Asset USD Formula Field Corrections -->
+<!-- These formulas fix the USD calculations to use DIVISION instead of MULTIPLICATION -->
+<!-- Since Exchange_Rate__c now stores RAW DatedConversionRate values -->
+
+<!-- ARR_USD__c Formula Field -->
+<CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>ARR_USD__c</fullName>
+    <label>ARR (USD)</label>
+    <type>Formula</type>
+    <formula>IF(
+    TEXT(CurrencyIsoCode) = "USD", 
+    ARR__c,
+    IF(
+        AND(Exchange_Rate__c != null, Exchange_Rate__c != 0), 
+        ARR__c / Exchange_Rate__c, 
+        ARR__c
+    )
+)</formula>
+    <formulaTreatBlanksAs>BlankAsZero</formulaTreatBlanksAs>
+    <precision>16</precision>
+    <scale>2</scale>
+    <trackHistory>false</trackHistory>
+    <type>Currency</type>
+    <description>Annual Recurring Revenue converted to USD using correct division formula with historical exchange rate</description>
+</CustomField>
+
+<!-- MRR_USD__c Formula Field -->
+<CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>MRR_USD__c</fullName>
+    <label>MRR (USD)</label>
+    <type>Formula</type>
+    <formula>IF(
+    TEXT(CurrencyIsoCode) = "USD", 
+    ARR__c / 12,
+    IF(
+        AND(Exchange_Rate__c != null, Exchange_Rate__c != 0), 
+        (ARR__c / 12) / Exchange_Rate__c, 
+        ARR__c / 12
+    )
+)</formula>
+    <formulaTreatBlanksAs>BlankAsZero</formulaTreatBlanksAs>
+    <precision>16</precision>
+    <scale>2</scale>
+    <trackHistory>false</trackHistory>
+    <type>Currency</type>
+    <description>Monthly Recurring Revenue (ARR/12) converted to USD using correct division formula with historical exchange rate</description>
+</CustomField>
+
+<!-- Total_Price_USD__c Formula Field -->
+<CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>Total_Price_USD__c</fullName>
+    <label>Total Price (USD)</label>
+    <type>Formula</type>
+    <formula>IF(
+    TEXT(CurrencyIsoCode) = "USD", 
+    Total_Price__c,
+    IF(
+        AND(Exchange_Rate__c != null, Exchange_Rate__c != 0), 
+        Total_Price__c / Exchange_Rate__c, 
+        Total_Price__c
+    )
+)</formula>
+    <formulaTreatBlanksAs>BlankAsZero</formulaTreatBlanksAs>
+    <precision>16</precision>
+    <scale>2</scale>
+    <trackHistory>false</trackHistory>
+    <type>Currency</type>
+    <description>Total Price converted to USD using correct division formula with historical exchange rate</description>
+</CustomField>
+
+<!-- Total_Value_USD__c Formula Field -->
+<CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>Total_Value_USD__c</fullName>
+    <label>Total Value (USD)</label>
+    <type>Formula</type>
+    <formula>IF(
+    TEXT(CurrencyIsoCode) = "USD", 
+    Total_Value__c,
+    IF(
+        AND(Exchange_Rate__c != null, Exchange_Rate__c != 0), 
+        Total_Value__c / Exchange_Rate__c, 
+        Total_Value__c
+    )
+)</formula>
+    <formulaTreatBlanksAs>BlankAsZero</formulaTreatBlanksAs>
+    <precision>16</precision>
+    <scale>2</scale>
+    <trackHistory>false</trackHistory>
+    <type>Currency</type>
+    <description>Total Value converted to USD using correct division formula with historical exchange rate</description>
+</CustomField>
+
+<!-- Price_USD__c Formula Field -->
+<CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>Price_USD__c</fullName>
+    <label>Price (USD)</label>
+    <type>Formula</type>
+    <formula>IF(
+    TEXT(CurrencyIsoCode) = "USD", 
+    Price,
+    IF(
+        AND(Exchange_Rate__c != null, Exchange_Rate__c != 0), 
+        Price / Exchange_Rate__c, 
+        Price
+    )
+)</formula>
+    <formulaTreatBlanksAs>BlankAsZero</formulaTreatBlanksAs>
+    <precision>16</precision>
+    <scale>2</scale>
+    <trackHistory>false</trackHistory>
+    <type>Currency</type>
+    <description>Price converted to USD using correct division formula with historical exchange rate</description>
+</CustomField>
+
+<!-- Unit_ARR_USD__c Formula Field -->
+<CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>Unit_ARR_USD__c</fullName>
+    <label>Unit ARR (USD)</label>
+    <type>Formula</type>
+    <formula>IF(
+    TEXT(CurrencyIsoCode) = "USD", 
+    Unit_ARR__c,
+    IF(
+        AND(Exchange_Rate__c != null, Exchange_Rate__c != 0), 
+        Unit_ARR__c / Exchange_Rate__c, 
+        Unit_ARR__c
+    )
+)</formula>
+    <formulaTreatBlanksAs>BlankAsZero</formulaTreatBlanksAs>
+    <precision>16</precision>
+    <scale>2</scale>
+    <trackHistory>false</trackHistory>
+    <type>Currency</type>
+    <description>Unit ARR converted to USD using correct division formula with historical exchange rate</description>
+</CustomField>
+
+<!-- Unit_MRR_USD__c Formula Field -->
+<CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>Unit_MRR_USD__c</fullName>
+    <label>Unit MRR (USD)</label>
+    <type>Formula</type>
+    <formula>IF(
+    TEXT(CurrencyIsoCode) = "USD", 
+    Unit_MRR__c,
+    IF(
+        AND(Exchange_Rate__c != null, Exchange_Rate__c != 0), 
+        Unit_MRR__c / Exchange_Rate__c, 
+        Unit_MRR__c
+    )
+)</formula>
+    <formulaTreatBlanksAs>BlankAsZero</formulaTreatBlanksAs>
+    <precision>16</precision>
+    <scale>2</scale>
+    <trackHistory>false</trackHistory>
+    <type>Currency</type>
+    <description>Unit MRR converted to USD using correct division formula with historical exchange rate</description>
+</CustomField>
+
+<!-- Unit_Value_USD__c Formula Field -->
+<CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>Unit_Value_USD__c</fullName>
+    <label>Unit Value (USD)</label>
+    <type>Formula</type>
+    <formula>IF(
+    TEXT(CurrencyIsoCode) = "USD", 
+    Unit_Value__c,
+    IF(
+        AND(Exchange_Rate__c != null, Exchange_Rate__c != 0), 
+        Unit_Value__c / Exchange_Rate__c, 
+        Unit_Value__c
+    )
+)</formula>
+    <formulaTreatBlanksAs>BlankAsZero</formulaTreatBlanksAs>
+    <precision>16</precision>
+    <scale>2</scale>
+    <trackHistory>false</trackHistory>
+    <type>Currency</type>
+    <description>Unit Value converted to USD using correct division formula with historical exchange rate</description>
+</CustomField>

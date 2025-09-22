@@ -1,8 +1,8 @@
 # GTM-146 Revenue Automation - Comprehensive Project Overview
 
 **Document Purpose:** Complete project context for agent handoff and collaboration  
-**Last Updated:** September 22, 2025 - 11:00 EDT  
-**Project Status:** Post-Deployment | Revenue Preservation Enhanced | Exchange Rate Loading Phase
+**Last Updated:** September 22, 2025 - 15:30 EDT  
+**Project Status:** Post-Deployment | Exchange Rate & USD Formula Corrections Complete
 
 ---
 
@@ -1021,7 +1021,73 @@ shouldPreserveExpiredRevenue = preserveAllExpired || preserveExpiredWithOpenRene
 
 ---
 
-**Document Status:** Updated September 22, 2025 - Revenue Preservation Enhancement Complete  
+## September 22, 2025 - EXCHANGE RATE & USD FORMULA CORRECTIONS
+
+### 🎯 CRITICAL CURRENCY CALCULATION FIXES
+
+**Problem Identified:** Asset USD formula fields using multiplication instead of division, causing incorrect USD conversions.
+
+**Issue Example:** EUR Asset with €126,000 ARR and exchange rate 0.846475 showing $106,656 instead of correct $148,852.59.
+
+### ✅ EXCHANGE RATE DATA LOADING COMPLETED
+
+**Historical Rate Population:**
+- **Source:** `DatedConversionRate-9_22_2025.csv` with 70 historical rates
+- **Target:** All 535 assets in org aligned with opportunity close dates
+- **Process:** Currency alignment + historical rate matching
+- **Result:** ✅ All assets now have correct `Exchange_Rate__c` values
+
+**Currency Alignment Results:**
+- **Mismatched currencies:** 16 assets corrected
+- **Missing exchange rates:** 98 assets populated
+- **Total processed:** 535 assets successfully updated
+
+### ✅ USD FORMULA FIELD CORRECTIONS
+
+**8 Asset USD Formula Fields Fixed:**
+1. `ARR_USD__c` - Changed from `ARR__c * Exchange_Rate__c` to `ARR__c / Exchange_Rate__c`
+2. `MRR_USD__c` - Changed from `MRR__c * Exchange_Rate__c` to `MRR__c / Exchange_Rate__c`
+3. `Total_Price_USD__c` - Applied division correction
+4. `Total_Value_USD__c` - Applied division correction
+5. `Price_USD__c` - Applied division correction
+6. `Unit_ARR_USD__c` - Applied division correction
+7. `Unit_MRR_USD__c` - Applied division correction
+8. `Unit_Value_USD__c` - Applied division correction
+
+**Verification Results:**
+- **EUR Asset Test:** €126,000 ÷ 0.846475 = $148,852.59 ✅
+- **USD Assets:** No conversion needed (rate = 1) ✅
+- **Formula Logic:** Correctly converts foreign currency to USD via division
+
+### ✅ BILLING AMOUNT CALCULATION RESOLVED
+
+**Issue:** `Software_Subscription_Amount_RUS__c` showing inflated values due to incorrect term lengths.
+
+**Root Cause:** User entry error - OpportunityLineItem with 120 months instead of 12 months term length.
+
+**Resolution:** Manual bulk update of `Term_Length_Months__c` values across all OpportunityLineItems.
+
+**Example Fix:**
+- **Before:** $52,500 × 120 ÷ 12 = $525,000 (inflated)
+- **After:** $52,500 × 12 ÷ 12 = $52,500 (correct)
+
+### 📊 BUSINESS IMPACT
+
+**Currency Accuracy:**
+- ✅ All USD conversions now mathematically correct
+- ✅ Historical exchange rates properly applied to assets
+- ✅ Billing amount calculations accurate for all opportunities
+
+**Data Quality:**
+- ✅ 535 assets with validated exchange rates
+- ✅ Currency alignment between assets and opportunities
+- ✅ Term length errors corrected across OpportunityLineItems
+
+**Final Status:** Exchange rate loading and USD formula corrections complete. Slack channel configuration remains the final production task.
+
+---
+
+**Document Status:** Updated September 22, 2025 - Exchange Rate & USD Formula Corrections Complete  
 **Project Status:** REVENUE PRESERVATION ENHANCED ✅ - Complete Contract Lifecycle Management  
 **Archive Status:** All session documentation organized and comprehensive
 

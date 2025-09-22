@@ -148,17 +148,26 @@ public class AccountRollupBatch implements Database.Batchable<sObject> {
         }
         
         // CRITICAL BUSINESS LOGIC: Expired Contract Revenue Preservation
-        // "if all contracts are expired that's when we preserve the expired amount"
-        shouldPreserveExpiredRevenue = (varN_ActiveContracts == 0 && 
-                                       varN_FutureContracts == 0 && 
-                                       varN_NumExpiredContracts > 0 &&
-                                       !varB_AllContractsCancelled);
+        // Scenario 1: "if all contracts are expired that's when we preserve the expired amount"
+        Boolean preserveAllExpired = (varN_ActiveContracts == 0 && 
+                                     varN_FutureContracts == 0 && 
+                                     varN_NumExpiredContracts > 0 &&
+                                     !varB_AllContractsCancelled);
+        
+        // Scenario 2: All contracts expired but open renewals - preserve until renewal resolves
+        Boolean preserveExpiredWithOpenRenewal = (varN_ActiveContracts == 0 && 
+                                                 varN_FutureContracts == 0 && 
+                                                 varN_NumExpiredContracts > 0 &&
+                                                 varB_HasOpenRenewal);
+        
+        shouldPreserveExpiredRevenue = preserveAllExpired || preserveExpiredWithOpenRenewal;
         
         if (shouldPreserveExpiredRevenue) {
             // PRESERVE existing revenue - don't nullify, don't recalculate
             System.debug('AccountRollupBatch: Preserving expired revenue for account ' + account.Id + 
                         ' (Active: ' + varN_ActiveContracts + ', Future: ' + varN_FutureContracts + 
-                        ', Expired: ' + varN_NumExpiredContracts + ')');
+                        ', Expired: ' + varN_NumExpiredContracts + ', HasOpenRenewal: ' + varB_HasOpenRenewal + 
+                        ', Scenario: ' + (preserveAllExpired ? 'AllExpired' : 'ExpiredWithOpenRenewal') + ')');
             
             // Keep existing ARR/ACV/TCV values, but still update USD fields if needed
             // Parse existing USD values for status calculations

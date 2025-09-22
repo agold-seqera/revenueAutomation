@@ -183,7 +183,7 @@ public class RevenueAutomationBatchTest {
         Test.startTest();
         
         ContractRevenueBatch batch = new ContractRevenueBatch();
-        List<Contract> contracts = [SELECT Id, Status, StartDate, EndDate, Exclude_from_Status_Updates__c, ARR__c, TCV__c, ARR_USD__c,
+        List<Contract> contracts = [SELECT Id, Status, StartDate, EndDate, Exclude_from_Status_Updates__c, ARR__c, ACV__c, TCV__c, MRR__c, Active_ARR__c, Previous_ARR__c, Incremental_ARR__c, ARR_USD__c, ACV_USD__c, TCV_USD__c, MRR_USD__c, Active_ARR_USD__c,
                                           (SELECT Id, ARR__c, Total_Value__c, Total_Price__c, Exchange_Rate__c,
                                                   Start_Date__c, End_Date__c, ProductFamily, Exclude_from_Status_Updates__c
                                            FROM Assets__r WHERE Exclude_from_Status_Updates__c = false)
@@ -538,5 +538,71 @@ public class RevenueAutomationBatchTest {
         System.assertEquals(75000, updatedAccount.ACV__c, 'ACV should be recalculated from active contract only');
         System.assertEquals(75000, updatedAccount.TCV__c, 'TCV should be recalculated from active contract only');
         System.assertEquals('Active', updatedAccount.Status__c, 'Account should be Active with active contracts');
+    }
+    
+    @isTest
+    static void testAccountRollupBatch_ExpiredRevenuePreservationWithOpenRenewal() {
+        // Test new business logic: preserve revenue when contracts expired but renewal is open
+        
+        // Create account with expired contract and open renewal
+        Account testAccount = new Account(Name = 'Expired with Open Renewal Test', CurrencyIsoCode = 'USD');
+        insert testAccount;
+        
+        // Create opportunity for renewal (using Existing Contract record type)
+        Opportunity renewalOpp = new Opportunity(
+            Name = 'Test Renewal',
+            AccountId = testAccount.Id,
+            StageName = 'Negotiations/Contracting', // Open renewal
+            CloseDate = Date.today().addDays(30),
+            Deal_Type__c = 'Renewal',
+            RecordTypeId = '012fJ000000kbFxQAI', // Existing Contract record type
+            CurrencyIsoCode = 'USD',
+            Amount = 60000
+        );
+        insert renewalOpp;
+        
+        // Create contract that will be expired (EndDate in the past)
+        Contract expiredContract = new Contract(
+            AccountId = testAccount.Id,
+            Status = 'Draft',
+            StartDate = Date.today().addDays(-365),
+            EndDate = Date.today().addDays(-1), // Expired yesterday
+            ARR__c = 60000,
+            ACV__c = 60000,
+            TCV__c = 60000,
+            MRR__c = 5000,
+            Renewal_Opportunity__c = renewalOpp.Id
+        );
+        insert expiredContract;
+        
+        // Update to Activated (following proper lifecycle)
+        expiredContract.Status = 'Activated';
+        update expiredContract;
+        
+        // Set initial account revenue (simulating previous active state)
+        testAccount.ARR__c = 60000;
+        testAccount.ACV__c = 60000;
+        testAccount.TCV__c = 60000;
+        testAccount.MRR__c = 5000;
+        testAccount.Has_Contracts__c = true;
+        update testAccount;
+        
+        Test.startTest();
+        
+        // Run AccountRollupBatch
+        AccountRollupBatch batch = new AccountRollupBatch();
+        Database.executeBatch(batch);
+        
+        Test.stopTest();
+        
+        // Verify revenue was PRESERVED (not nullified) due to open renewal
+        Account updatedAccount = [SELECT Id, ARR__c, ACV__c, TCV__c, MRR__c, Status__c 
+                                 FROM Account WHERE Id = :testAccount.Id];
+        
+        System.assertEquals(60000, updatedAccount.ARR__c, 'ARR should be preserved with open renewal');
+        System.assertEquals(60000, updatedAccount.ACV__c, 'ACV should be preserved with open renewal');
+        System.assertEquals(60000, updatedAccount.TCV__c, 'TCV should be preserved with open renewal');
+        System.assertEquals(5000, updatedAccount.MRR__c, 'MRR should be preserved with open renewal');
+        System.assertEquals('Active (Churning)', updatedAccount.Status__c, 'Account should be Active (Churning) with expired contract and open renewal');
     }
 }

@@ -1,8 +1,8 @@
 # GTM-146 Revenue Automation - Comprehensive Project Overview
 
 **Document Purpose:** Complete project context for agent handoff and collaboration  
-**Last Updated:** September 21, 2025 - 14:45 EDT  
-**Project Status:** Post-Deployment | Business Logic Enhanced | Exchange Rate Loading Phase
+**Last Updated:** September 22, 2025 - 11:00 EDT  
+**Project Status:** Post-Deployment | Revenue Preservation Enhanced | Exchange Rate Loading Phase
 
 ---
 
@@ -952,9 +952,78 @@ All development requirements for time-based revenue calculations have been imple
 
 ---
 
-**Document Status:** Updated September 21, 2025 - Business Rule Enhancement Complete  
-**Project Status:** BUSINESS LOGIC ENHANCED ✅ - Production Ready with Complete Account Lifecycle Management  
-**Archive Status:** Complete session documentation and organized project archives
+## September 22, 2025 - REVENUE PRESERVATION ENHANCEMENT
+
+### 🎯 CRITICAL BUSINESS SCENARIO ADDRESSED
+
+**Problem Identified:** Account `001fJ000021Y30LQAS` (Pioneering Medicines Explorations Inc.) lost revenue when contract expired but renewal opportunity was still open.
+
+**Business Scenario:** Contract transitions where renewal negotiations are ongoing but contract has technically expired.
+
+**Gap in Logic:** Original preservation only applied when NO renewals existed, missing the scenario of expired contracts WITH open renewals.
+
+### ✅ NEW REVENUE PRESERVATION LOGIC IMPLEMENTED
+
+**Enhanced `AccountRollupBatch.cls` - Additional Preservation Scenario:**
+
+```apex
+// Scenario 1: All contracts expired, no renewals (ORIGINAL)
+Boolean preserveAllExpired = (varN_ActiveContracts == 0 && 
+                             varN_FutureContracts == 0 && 
+                             varN_NumExpiredContracts > 0 &&
+                             !varB_AllContractsCancelled);
+
+// Scenario 2: All contracts expired BUT open renewals (NEW)
+Boolean preserveExpiredWithOpenRenewal = (varN_ActiveContracts == 0 && 
+                                         varN_FutureContracts == 0 && 
+                                         varN_NumExpiredContracts > 0 &&
+                                         varB_HasOpenRenewal);
+
+shouldPreserveExpiredRevenue = preserveAllExpired || preserveExpiredWithOpenRenewal;
+```
+
+### ✅ PRODUCTION DEPLOYMENT STATUS
+
+- **Classes Updated:** `AccountRollupBatch.cls`, `RevenueAutomationBatchTest.cls`, `ContractRevenueBatch.cls`
+- **Test Results:** 138/138 tests passing (100%) 
+- **Deployment:** Production successful
+- **Batch Manager:** Rescheduled (Job ID: 08ePn00000tu4Nr)
+- **Business Validation:** Account `001fJ000021Y30LQAS` revenue preserved correctly
+
+### 🔧 TECHNICAL IMPLEMENTATION
+
+**New Test Coverage:** `testAccountRollupBatch_ExpiredRevenuePreservationWithOpenRenewal()`
+
+**Test Challenge Resolution:**
+1. **Deal_Type Picklist:** Required "Existing Contract" record type for "Renewal" value
+2. **SOQL Field Coverage:** Added missing `Previous_ARR__c` and all revenue fields
+
+### 📊 BUSINESS IMPACT
+
+**Financial Accuracy:**
+- ✅ Revenue preserved during contract-to-renewal transitions
+- ✅ No revenue gaps during negotiation periods
+- ✅ Accurate accounting representation
+
+**Status Management:**
+- Contract: Expired → Proper status reflection
+- Account: Active (Churning) → Correct during renewal negotiations  
+- Revenue: Preserved → Maintains business continuity
+
+### 🎯 COMPREHENSIVE BUSINESS RULE MATRIX
+
+| Scenario | Active Contracts | Future Contracts | Expired Contracts | Open Renewals | Revenue Action |
+|----------|------------------|------------------|-------------------|---------------|----------------|
+| Standard Active | ✅ | Any | Any | Any | Calculate from Active |
+| All Expired (Original) | ❌ | ❌ | ✅ | ❌ | **Preserve Existing** |
+| **Expired + Open Renewal (NEW)** | ❌ | ❌ | ✅ | ✅ | **Preserve Existing** |
+| All Cancelled | ❌ | ❌ | ✅ Cancelled | Any | Nullify Revenue |
+
+---
+
+**Document Status:** Updated September 22, 2025 - Revenue Preservation Enhancement Complete  
+**Project Status:** REVENUE PRESERVATION ENHANCED ✅ - Complete Contract Lifecycle Management  
+**Archive Status:** All session documentation organized and comprehensive
 
 ## September 20, 2025 - EXPIRED REVENUE PRESERVATION IMPLEMENTATION
 

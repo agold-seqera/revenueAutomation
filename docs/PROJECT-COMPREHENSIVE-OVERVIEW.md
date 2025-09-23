@@ -1,8 +1,8 @@
 # GTM-146 Revenue Automation - Comprehensive Project Overview
 
 **Document Purpose:** Complete project context for agent handoff and collaboration  
-**Last Updated:** September 23, 2025 - 11:32 EDT  
-**Project Status:** ✅ PRODUCTION READY | All Critical Issues Resolved | Revenue Automation Fully Operational
+**Last Updated:** September 23, 2025 - 13:36 EDT  
+**Project Status:** ✅ PRODUCTION READY | Account Type Logic Complete | All Critical Issues Resolved
 
 ---
 
@@ -1521,6 +1521,82 @@ if (account.Status__c == 'Active' &&
 - **Accurate Churn Tracking:** Ensures proper churning status for expired accounts with lost renewals
 - **Data Integrity:** Maintains consistent account lifecycle for reporting and analytics
 - **Customer Success Alignment:** Proper status tracking for customer health monitoring
+
+---
+
+## **🔧 SEPTEMBER 23, 2025 - PRODUCT FAMILY LOGIC ENHANCEMENT**
+
+### **Product Family Revenue Calculation Fix**
+**Time:** 12:45 EDT | **Status:** ✅ DEPLOYED & VERIFIED
+
+**Problem Identified:**
+- ContractRevenueBatch only included "Software Subscriptions" in ARR calculations
+- Excluded "Sample-based", "Recurring Services", and "CPUh - Prepaid" families
+- Used binary exclusion logic instead of inclusive allow-list
+
+**Solution Implemented:**
+```apex
+// New inclusive logic with explicit recurring revenue families
+private static final Set<String> RECURRING_REVENUE_FAMILIES = new Set<String>{
+    'Software Subscriptions',
+    'Sample-based', 
+    'Recurring Services',
+    'CPUh - Prepaid'
+};
+
+// Updated filtering logic
+if (RECURRING_REVENUE_FAMILIES.contains(asset.ProductFamily)) {
+    // Include in ARR calculations
+}
+```
+
+**Business Impact:**
+- **10 active assets** now properly included in revenue calculations
+- **9 contracts** will have corrected ARR/ACV/MRR values after next batch run
+- Maintains proper exclusion of Professional Service and CPUh - PAYG
+
+**Technical Changes:**
+- Updated ContractRevenueBatch.cls with inclusive product family logic
+- Added ProductFamily custom field to SOQL queries
+- Retrieved missing ProductFamily metadata from org
+- All tests passing (136/136 - 100%)
+
+### **Account Type Logic Implementation**
+**Time:** 13:30 EDT | **Status:** ✅ DEPLOYED & VERIFIED
+
+**Problem Identified:**
+- Account Type field not updating automatically with Status__c changes
+- Old flow-based logic inconsistent with desired business workflow
+- Churned accounts incorrectly showing Type = "Prospect"
+
+**Solution Implemented:**
+```apex
+// New Account Type determination logic in AccountRollupBatch
+private String determineAccountType(String status) {
+    // Customer statuses: Contracted, Active, Active (Churning)
+    if (status == 'Contracted' || status == 'Active' || status == 'Active (Churning)') {
+        return 'Customer';
+    }
+    
+    // Prospect status
+    if (status == 'Prospect') {
+        return 'Prospect';
+    }
+    
+    // Churned status  
+    if (status == 'Churned') {
+        return 'Churned';
+    }
+    
+    return null; // No change for other statuses
+}
+```
+
+**Business Impact:**
+- **Status → Type Mapping:** Contracted/Active/Active(Churning) → Customer | Prospect → Prospect | Churned → Churned
+- **One-time cleanup:** Fixed 8 existing Churned accounts with incorrect Type = "Prospect"
+- **Automated workflow:** Type field now updates automatically with Status__c changes in Apex
+- **Data consistency:** All accounts now have proper Type alignment for reporting and analytics
 
 ---
 

@@ -12,7 +12,7 @@
  *   - Nullify all revenue fields first
  *   - Loop through related assets (Exclude_from_Status_Updates__c = false)
  *   - Add revenue totals (TCV from Total_Value__c, others from respective fields)
- *   - Check if asset is active (Start_Date <= TODAY, End_Date >= TODAY, ProductFamily != 'Professional Service')
+ *   - Check if asset is active (Start_Date <= TODAY, End_Date >= TODAY, ProductFamily in recurring revenue families)
  *   - If active: Add to ARR, ACV (Total_Price__c), Active_ARR, USD totals, counts
  *   - Calculate MRR = ARR / 12
  *   - Calculate Incremental ARR = IF(ISNULL(Previous_ARR), ARR, ARR - Previous_ARR)
@@ -21,6 +21,14 @@
 public class ContractRevenueBatch implements Database.Batchable<sObject>, 
                                             Database.Stateful, 
                                             Database.RaisesPlatformEvents {
+    
+    // Recurring revenue product families (included in ARR calculations)
+    private static final Set<String> RECURRING_REVENUE_FAMILIES = new Set<String>{
+        'Software Subscriptions',
+        'Sample-based', 
+        'Recurring Services',
+        'CPUh - Prepaid'
+    };
     
     // Enhanced diagnostic tracking (Database.Stateful preserves across batch executions)
     private String executionContext;
@@ -74,7 +82,7 @@ public class ContractRevenueBatch implements Database.Batchable<sObject>,
                    ARR_USD__c, ACV_USD__c, TCV_USD__c, MRR_USD__c, Active_ARR_USD__c,
                    ARR_USD_Reporting__c, ACV_USD_Reporting__c, TCV_USD_Reporting__c, MRR_USD_Reporting__c, Active_ARR_USD_Reporting__c,
                    (SELECT Id, ARR__c, Total_Value__c, Total_Price__c, Exchange_Rate__c,
-                           Start_Date__c, End_Date__c, Product2.Family, Exclude_from_Status_Updates__c
+                           Start_Date__c, End_Date__c, Product2.Family, ProductFamily, Exclude_from_Status_Updates__c
                     FROM Assets__r 
                     WHERE Exclude_from_Status_Updates__c = false)
             FROM Contract 
@@ -350,10 +358,10 @@ public class ContractRevenueBatch implements Database.Batchable<sObject>,
                     varAssetsStartedCount += 1;
                 }
                 
-                // Is_Asset_Active decision logic (exact flow replication)
+                // Is_Asset_Active decision logic (updated for all recurring revenue families)
                 if (asset.Start_Date__c <= today && 
                     asset.End_Date__c >= today && 
-                    asset.Product2.Family != 'Professional Service') {
+                    RECURRING_REVENUE_FAMILIES.contains(asset.Product2.Family)) {
                     
                     // Add_Active_ARR logic (exact flow replication)
                     contract.ARR__c += asset.ARR__c != null ? asset.ARR__c : 0;
@@ -412,7 +420,7 @@ public class ContractRevenueBatch implements Database.Batchable<sObject>,
                 // Active asset USD calculations
                 if (asset.Start_Date__c <= today && 
                     asset.End_Date__c >= today && 
-                    asset.ProductFamily != 'Professional Service') {
+                    RECURRING_REVENUE_FAMILIES.contains(asset.ProductFamily)) {
                     
                     Decimal forARR_USD = (asset.ARR__c != null ? asset.ARR__c : 0) / 
                                          (asset.Exchange_Rate__c != null ? asset.Exchange_Rate__c : 1);

@@ -215,7 +215,7 @@ public class RevenueAutomationBatchTest {
         ContractRevenueBatch batch = new ContractRevenueBatch();
         List<Contract> contracts = [SELECT Id, Status, StartDate, EndDate, Exclude_from_Status_Updates__c, ARR__c, ACV__c, TCV__c, MRR__c, Active_ARR__c, Previous_ARR__c, Incremental_ARR__c, ARR_USD__c, ACV_USD__c, TCV_USD__c, MRR_USD__c, Active_ARR_USD__c, ARR_USD_Reporting__c, ACV_USD_Reporting__c, TCV_USD_Reporting__c, MRR_USD_Reporting__c, Active_ARR_USD_Reporting__c,
                                           (SELECT Id, ARR__c, Total_Value__c, Total_Price__c, Exchange_Rate__c,
-                                                  Start_Date__c, End_Date__c, ProductFamily, Exclude_from_Status_Updates__c
+                                                  Start_Date__c, End_Date__c, Product2.Family, ProductFamily, Exclude_from_Status_Updates__c
                                            FROM Assets__r WHERE Exclude_from_Status_Updates__c = false)
                                    FROM Contract WHERE Id = :emptyContract.Id];
         batch.execute(null, contracts);

@@ -1,6 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <Flow xmlns="http://soap.sforce.com/2006/04/metadata">
     <apiVersion>64.0</apiVersion>
+    <areMetricsLoggedToDataCloud>false</areMetricsLoggedToDataCloud>
     <assignments>
         <name>Add_OLI_to_Update_List</name>
         <label>Add OLI to Update List</label>
@@ -23,13 +24,6 @@
         <locationX>0</locationX>
         <locationY>0</locationY>
         <assignmentItems>
-            <assignToReference>varR_OLItoUpdate.Include_in_ARR__c</assignToReference>
-            <operator>Assign</operator>
-            <value>
-                <booleanValue>false</booleanValue>
-            </value>
-        </assignmentItems>
-        <assignmentItems>
             <assignToReference>varR_OLItoUpdate.Include_in_ARR_Sum__c</assignToReference>
             <operator>Assign</operator>
             <value>
@@ -48,17 +42,33 @@
         </connector>
     </assignments>
     <assignments>
+        <name>Set_Include_in_ARR_Calculation_to_Override_Value</name>
+        <label>Set Include in ARR Calculation to Override Value</label>
+        <locationX>0</locationX>
+        <locationY>0</locationY>
+        <assignmentItems>
+            <assignToReference>Loop_Related_Line_Items.Include_in_ARR_Sum__c</assignToReference>
+            <operator>Assign</operator>
+            <value>
+                <elementReference>Loop_Related_Line_Items.Include_in_ARR_Sum__c</elementReference>
+            </value>
+        </assignmentItems>
+        <assignmentItems>
+            <assignToReference>varR_OLItoUpdate.Id</assignToReference>
+            <operator>Assign</operator>
+            <value>
+                <elementReference>Loop_Related_Line_Items.Id</elementReference>
+            </value>
+        </assignmentItems>
+        <connector>
+            <targetReference>Add_OLI_to_Update_List</targetReference>
+        </connector>
+    </assignments>
+    <assignments>
         <name>Set_Include_in_ARR_Calculation_to_True</name>
         <label>Set Include in ARR Calculation to True</label>
         <locationX>0</locationX>
         <locationY>0</locationY>
-        <assignmentItems>
-            <assignToReference>varR_OLItoUpdate.Include_in_ARR__c</assignToReference>
-            <operator>Assign</operator>
-            <value>
-                <booleanValue>true</booleanValue>
-            </value>
-        </assignmentItems>
         <assignmentItems>
             <assignToReference>varR_OLItoUpdate.Include_in_ARR_Sum__c</assignToReference>
             <operator>Assign</operator>
@@ -87,8 +97,23 @@
         </defaultConnector>
         <defaultConnectorLabel>Don&apos;t Include in ARR</defaultConnectorLabel>
         <rules>
-            <name>Include_in_ARR</name>
+            <name>Override</name>
             <conditionLogic>and</conditionLogic>
+            <conditions>
+                <leftValueReference>Loop_Related_Line_Items.Include_in_ARR__c</leftValueReference>
+                <operator>EqualTo</operator>
+                <rightValue>
+                    <booleanValue>true</booleanValue>
+                </rightValue>
+            </conditions>
+            <connector>
+                <targetReference>Set_Include_in_ARR_Calculation_to_Override_Value</targetReference>
+            </connector>
+            <label>Override</label>
+        </rules>
+        <rules>
+            <name>Include_in_ARR</name>
+            <conditionLogic>or</conditionLogic>
             <conditions>
                 <leftValueReference>Loop_Related_Line_Items.Term_Start_Date__c</leftValueReference>
                 <operator>LessThanOrEqualTo</operator>
@@ -208,7 +233,7 @@
         <label>Get Opportunity Details</label>
         <locationX>0</locationX>
         <locationY>0</locationY>
-        <assignNullValuesIfNoRecordsFound>true</assignNullValuesIfNoRecordsFound>
+        <assignNullValuesIfNoRecordsFound>false</assignNullValuesIfNoRecordsFound>
         <connector>
             <targetReference>Get_First_Related_Line_Item_by_Term</targetReference>
         </connector>

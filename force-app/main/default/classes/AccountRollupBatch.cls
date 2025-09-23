@@ -20,7 +20,7 @@ public class AccountRollupBatch implements Database.Batchable<sObject> {
      */
     public Database.QueryLocator start(Database.BatchableContext bc) {
         return Database.getQueryLocator([
-            SELECT Id, Status__c, ARR__c, ACV__c, TCV__c, MRR__c, Incremental_ARR__c,
+            SELECT Id, Status__c, Type, ARR__c, ACV__c, TCV__c, MRR__c, Incremental_ARR__c,
                    ARR_USD__c, ACV_USD__c, TCV_USD__c, MRR_USD__c,
                    ARR_USD_Reporting__c, ACV_USD_Reporting__c, TCV_USD_Reporting__c, MRR_USD_Reporting__c,
                    (SELECT Id, ARR__c, ACV__c, TCV__c, MRR__c, Incremental_ARR__c,
@@ -236,6 +236,12 @@ public class AccountRollupBatch implements Database.Batchable<sObject> {
                                                  varB_HasLostRenewal, varB_AllContractsCancelled);
         if (newStatus != null) {
             account.Status__c = newStatus;
+            
+            // Step 7.5: Update Type field based on Status__c (replaces flow logic)
+            String newType = determineAccountType(newStatus);
+            if (newType != null) {
+                account.Type = newType;
+            }
         }
         
         // Step 8: Calculate MRR (exact flow formula)
@@ -355,6 +361,33 @@ public class AccountRollupBatch implements Database.Batchable<sObject> {
         }
         
         // Rule 9: Default - no change
+        return null;
+    }
+    
+    /**
+     * Determine Account Type based on Status__c value
+     * Replaces flow logic for Type field updates
+     * 
+     * @param status The Status__c value to map to Type
+     * @return String Type value or null if no change needed
+     */
+    private String determineAccountType(String status) {
+        // Customer statuses: Contracted, Active, Active (Churning)
+        if (status == 'Contracted' || status == 'Active' || status == 'Active (Churning)') {
+            return 'Customer';
+        }
+        
+        // Prospect status
+        if (status == 'Prospect') {
+            return 'Prospect';
+        }
+        
+        // Churned status  
+        if (status == 'Churned') {
+            return 'Churned';
+        }
+        
+        // No change for other statuses
         return null;
     }
 }

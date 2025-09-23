@@ -1,0 +1,42 @@
+Object_Type,Record_Id,Record_Name,Account_Name,Account_Status,Contract_Status,Currency,Issue_Type,ARR_Base,ARR_USD,ACV_Base,ACV_USD,TCV_Base,TCV_USD,MRR_Base,MRR_USD,Incremental_ARR_Base,Incremental_ARR_USD,Last_Modified,Priority
+Contract,800fJ000007eMmPQAU,00000510,AbbVie,Active,Expired,USD,USD_Fields_Zero_For_Expired_Contract,57450,$0.00,57450,$0.00,57450,"$57,450.00",4787.5,$0.00,,2025-06-30,HIGH
+Contract,800fJ000007eNCLQA2,00000651,"Adela, Inc.",Active,Expired,USD_Fields_Zero_For_Expired_Contract,USD,55150,$0.00,55150,$0.00,55150,"$55,150.00",4595.83,$0.00,150.00",HIGH
+Contract,800fJ000007eMm7QAE,00000492,Almirall,Active,Expired,EUR,USD_Fields_Zero_For_Expired_Contract,38260,$0.00,38260,$0.00,38260,"$41,509.04",3188.33,$0.00,-28900,2025-06-17,HIGH
+Contract,800fJ000007eNCJQA2,00000649,Altos Labs Inc,Active,Expired,USD,USD_Fields_Zero_For_Expired_Contract,168800,$0.00,168800,$0.00,84400,"$84,400.00",14066.67,$0.00,-168800,2024-07-03,HIGH
+Contract,800fJ000007eNCIQA2,00000648,Ambry Genetics,Active,Expired,USD,USD_Fields_Zero_For_Expired_Contract,40000,$0.00,40000,$0.00,40000,"$40,000.00",3333.33,$0.00,-40000,2024-06-30,HIGH
+Contract,800fJ000007eMlnQAE,00000472,Arbor Biotechnologies,Active,Expired,USD,USD_Fields_Zero_For_Expired_Contract,15000,$0.00,15000,$0.00,0,$0.00,1250,$0.00,-15000,"$-15,2025-05-25,HIGH
+Contract,800fJ000007eLC8QAM,00000565,BioMerieux,Active,Expired,EUR,USD_Fields_Zero_For_Expired_Contract,49665,$0.00,49665,$0.00,49665,"$53,882.55",4138.75,$0.00,-47300,2025-06-27,HIGH
+Contract,800fJ000007eLC5QAM,00000562,Biomodal,Active,Expired,EUR,USD_Fields_Zero_For_Expired_Contract,113820,$0.00,113820,$0.00,113820,"$123,485.59",9485,$0.00,-87120,2025-06-13,HIGH
+Contract,800fJ000007eLC3QAM,00000560,BioSkryb Genomics,Active,Expired,USD,USD_Fields_Zero_For_Expired_Contract,51550,$0.00,51550,$0.00,51550,"$51,550.00",4295.83,$0.00,19100,2024-07-29,HIGH
+Contract,800fJ000007eNLVQA2,00000674,Boehringer Ingelheim GmbH,Active,Expired,EUR,USD_Fields_Zero_For_Expired_Contract,146900,$0.00,146900,$0.00,146900,"$158,021.80",12241.67,$0.00,108400,2025-07-25,HIGH
+Contract,800fJ000007eLqdQAE,00000438,e-therapeutics plc,Active,Expired,EUR,USD_Fields_Zero_For_Expired_Contract,75325,$0.00,75325,$0.00,75325,"$81,027.86",6277.08,$0.00,-65000,2025-07-14,HIGH
+Contract,800fJ000007eNCDQA2,00000643,EBI / EMBL,Active,Expired,EUR,USD_Fields_Zero_For_Expired_Contract,3750,$0.00,3750,$0.00,0,$0.00,312.5,$0.00,,,2025-06-15T05:20:35.000+0000,HIGH
+Contract,800fJ000007eNC5QAM,00000635,"Health Research, Inc",Active,Expired,USD_Fields_Zero_For_Expired_Contract,USD,27653,$0.00,27653,$0.00,6913.25,"$6,913.25",2304.42,$0.00,889.30",HIGH
+Contract,800fJ000007eMGKQA2,00000270,Howard Hughes Medical Institute,Active,Expired,USD,USD_Fields_Zero_For_Expired_Contract,24337.5,$0.00,24337.5,$0.00,17577.08,"$17,577.08",2028.13,$0.00,-24337.5,2024-07-01,HIGH
+Contract,800fJ000007eMG7QAM,00000257,Indiana,Active,Expired,USD,USD_Fields_Zero_For_Expired_Contract,48000,$0.00,48000,$0.00,48000,"$48,000.00",4000,$0.00,,2025-07-14,HIGH
+Contract,800fJ000007eI34QAE,00000343,Nonacus,Active,Expired,USD,USD_Fields_Zero_For_Expired_Contract,28888.55,$0.00,28888.55,$0.00,28888.55,"$25,456.59",2407.38,$0.00,,2025-05-24,HIGH
+Contract,800fJ000007eI30QAE,00000339,Northwestern Medicine,Active,Expired,USD,USD_Fields_Zero_For_Expired_Contract,46700,$0.00,46700,$0.00,46700,"$46,700.00",3891.67,$0.00,0,2025-09-05,HIGH
+Contract,800fJ000007eNLOQA2,00000667,Novozymes,Active,Expired,USD,USD_Fields_Zero_For_Expired_Contract,42700,$0.00,42700,$0.00,42700,"$42,700.00",3558.33,$0.00,,2025-07-28,HIGH
+Contract,800fJ000008Q7vxQAC,00000700,Otsuka Pharmaceutical Development and Commercialization,Active,Expired,USD,USD_Fields_Zero_For_Expired_Contract,44912.5,$0.00,44912.5,$0.00,41169.8,"$47,254.17",3742.71,$0.00,-51550,2024-06-30,HIGH
+Contract,800fJ000007eMbdQAE,00000219,Precede Biosciences,Active,Expired,USD,USD_Fields_Zero_For_Expired_Contract,59249.88,$0.00,59249.88,$0.00,49762.39,"$49,762.39",4937.49,$0.00,41249.88,2024-07-24,HIGH
+Contract,800fJ000007eMbSQAU,00000208,Quotient Therapeutics Ltd,Active,Expired,USD,USD_Fields_Zero_For_Expired_Contract,15902.5,$0.00,15902.5,$0.00,13167.5,"$13,167.50",1325.21,$0.00,10002.5,2024-07-24,HIGH
+Contract,800fJ000007eMbFQAU,00000195,Roche,Active,Expired,EUR,USD_Fields_Zero_For_Expired_Contract,46660,$0.00,46660,$0.00,46660,"$49,786.22",3888.33,$0.00,,2025-05-27,HIGH
+Contract,800fJ000007eNLLQA2,00000664,Roche,Active,Expired,EUR,USD_Fields_Zero_For_Expired_Contract,46660,$0.00,46660,$0.00,7776.67,"$8,825.51",3888.33,$0.00,0,2025-07-31,HIGH
+Contract,800fJ000007eNBmQAM,00000616,Sage Bionetworks,Active,Expired,USD,USD_Fields_Zero_For_Expired_Contract,37950,$0.00,37950,$0.00,37950,"$37,950.00",3162.5,$0.00,0,2025-07-18,HIGH
+Contract,800fJ000007eI2wQAE,00000335,Savanna BioTX (NovoGlia),Active,Expired,USD,USD_Fields_Zero_For_Expired_Contract,26800,$0.00,26800,$0.00,26800,"$26,800.00",2233.33,$0.00,,2025-06-13,HIGH
+Contract,800fJ000007eNBdQAM,00000607,"Vedanta Biosciences, Inc.",Active,Expired,USD_Fields_Zero_For_Expired_Contract,USD,57450,$0.00,64950,$0.00,64950,"$64,950.00",4787.5,$0.00,2024-07-09,HIGH
+Contract,800fJ000007eNBaQAM,00000604,Xaira,Active,Expired,USD,USD_Fields_Zero_For_Expired_Contract,51550,$0.00,51550,$0.00,51550,"$51,550.00",4295.83,$0.00,-51550,2024-07-01,HIGH
+Contract,800fJ000007eMlwQAE,00000481,Ancestry,Active (Churning),Expired,USD,USD_Fields_Zero_For_Expired_Contract,66300,$0.00,66300,$0.00,66300,"$66,300.00",5525,$0.00,0,2025-09-22,HIGH
+Contract,800fJ000007eMmSQAU,00000513,5 Prime Sciences,Churned,Expired,USD,USD_Fields_Zero_For_Expired_Contract,16400,$0.00,16400,$0.00,16400,"$16,400.00",1366.67,$0.00,5900,2024-08-31,HIGH
+Contract,800fJ000007eLBfQAM,00000536,CDC,Churned,Expired,USD,USD_Fields_Zero_For_Expired_Contract,924687.5,$0.00,924687.5,$0.00,924687.5,"$924,687.50",77057.29,$0.00,314163.5,2024-09-21,HIGH
+Contract,800fJ000007eLBVQA2,00000526,Chroma Medicine,Churned,Expired,USD,USD_Fields_Zero_For_Expired_Contract,14750,$0.00,14750,$0.00,14750,"$14,750.00",1229.17,$0.00,-14750,2024-06-17,HIGH
+Contract,800fJ000007eNCCQA2,00000642,Element Biosciences,Churned,Expired,USD,USD_Fields_Zero_For_Expired_Contract,30500,$0.00,30500,$0.00,30500,"$30,500.00",2541.67,$0.00,0,2025-08-10,HIGH
+Contract,800fJ000007eLq8QAE,00000407,Flagship Pioneering,Churned,Expired,USD,USD_Fields_Zero_For_Expired_Contract,52500,$0.00,52500,$0.00,52500,"$52,500.00",4375,$0.00,10000,2024-07-24,HIGH
+Contract,800fJ000007ei38QAA,00000679,Institut Pasteur de Dakar,Churned,Expired,USD,USD_Fields_Zero_For_Expired_Contract,30750,$0.00,40750,$0.00,40750,"$40,750.00",2562.5,$0.00,,2025-07-14,HIGH
+Contract,800fJ000007eMFgQAM,00000230,LifeMine Therapeutics Inc,Churned,Expired,USD,USD_Fields_Zero_For_Expired_Contract,30900,$0.00,30900,$0.00,30900,"$30,900.00",2575,$0.00,-11796,2024-09-01,HIGH
+Contract,800fJ000007eI3HQAU,00000356,National Genome Center - Denmark,Churned,Expired,USD,USD_Fields_Zero_For_Expired_Contract,100000,$0.00,100000,$0.00,100000,"$100,000.00",8333.33,$0.00,,2025-05-31,HIGH
+Contract,800fJ000007eI2MQAU,00000299,Pioneering Medicines Explorations Inc.,Churned,Expired,USD,USD_Fields_Zero_For_Expired_Contract,5900,$0.00,5900,$0.00,5900,"$5,900.00",491.67,$0.00,0,2025-09-05,HIGH
+Contract,800fJ000007eLq9QAE,00000408,Prologue Medicines (fka FL89),Churned,Expired,USD,USD_Fields_Zero_For_Expired_Contract,5900,$0.00,5900,$0.00,5900,"$5,900.00",491.67,$0.00,0,2025-07-23,HIGH
+Contract,800fJ000007eMbQQAU,00000206,"Resilience US, Inc.",Churned,Expired,USD_Fields_Zero_For_Expired_Contract,USD,127500,$0.00,127500,$0.00,127500,"$127,500.00",10625,$0.00,200.00",HIGH
+Contract,800fJ000007eNBjQAM,00000613,Scale Biosciences,Churned,Expired,USD,USD_Fields_Zero_For_Expired_Contract,40500,$0.00,40500,$0.00,40500,"$40,500.00",3375,$0.00,5000,2024-08-15,HIGH
+Contract,800fJ000007eNBgQAM,00000610,TGen - Part of City of Hope,Churned,Expired,USD,USD_Fields_Zero_For_Expired_Contract,27700,$0.00,27700,$0.00,27700,"$27,700.00",2308.33,$0.00,-27700,2024-07-15,HIGH

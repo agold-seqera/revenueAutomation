@@ -86,10 +86,10 @@ public class AccountRollupBatch implements Database.Batchable<sObject> {
      * 3. Check_Renewal_Status → Set renewal flags
      * 4. Get_Cancelled_Contracts → Check_All_Contracts_Cancelled
      * 5. Get_Lost_Renewals → Check_Lost_Renewals
-     * 6. Loop_Contracts → Add revenue totals + contract counts
-     * 7. Account_Status decision (enhanced v42 logic)
-     * 8. Format USD fields
-     * 9. Update_Account
+ * 6. Loop_Contracts → Add revenue totals + contract counts
+ * 7. Account_Status decision (enhanced v42 logic)
+ * 8. Format USD fields (ALWAYS from ALL contracts for full alignment)
+ * 9. Update_Account
      */
     private Account processAccount(Account account, Date today) {
         // Initialize USD totals and tracking variables
@@ -163,6 +163,7 @@ public class AccountRollupBatch implements Database.Batchable<sObject> {
                                      !varB_AllContractsCancelled);
         
         // Scenario 2: All contracts expired but open renewals - preserve until renewal resolves
+        // Active (Churning) accounts should preserve expired revenue until renewal outcome is known
         Boolean preserveExpiredWithOpenRenewal = (varN_ActiveContracts == 0 && 
                                                  varN_FutureContracts == 0 && 
                                                  varN_NumExpiredContracts > 0 &&
@@ -177,18 +178,23 @@ public class AccountRollupBatch implements Database.Batchable<sObject> {
                         ', Expired: ' + varN_NumExpiredContracts + ', HasOpenRenewal: ' + varB_HasOpenRenewal + 
                         ', Scenario: ' + (preserveAllExpired ? 'AllExpired' : 'ExpiredWithOpenRenewal') + ')');
             
-            // Keep existing ARR/ACV/TCV values, but still update USD fields if needed
-            // Parse existing USD values for status calculations
-            varARR_USD_Total = parseUSDValue(account.ARR_USD__c);
-            varACV_USD_Total = parseUSDValue(account.ACV_USD__c);
-            varTCV_USD_Total = parseUSDValue(account.TCV_USD__c);
-            varMRR_USD_Total = parseUSDValue(account.MRR_USD__c);
-            
-            // Parse existing Number reporting values
-            varARR_Reporting_Total = account.ARR_USD_Reporting__c != null ? account.ARR_USD_Reporting__c : 0;
-            varACV_Reporting_Total = account.ACV_USD_Reporting__c != null ? account.ACV_USD_Reporting__c : 0;
-            varTCV_Reporting_Total = account.TCV_USD_Reporting__c != null ? account.TCV_USD_Reporting__c : 0;
-            varMRR_Reporting_Total = account.MRR_USD_Reporting__c != null ? account.MRR_USD_Reporting__c : 0;
+            // PRESERVE base currency, but RECALCULATE USD from ALL contracts for full alignment
+            // This ensures even preserved accounts have accurate USD totals
+            for (Contract contract : account.Contracts) {
+                if (contract.Exclude_from_Status_Updates__c == false) {
+                    // USD aggregation: ALL contracts (ensures alignment even during preservation)
+                    varARR_USD_Total += parseUSDValue(contract.ARR_USD__c);
+                    varACV_USD_Total += parseUSDValue(contract.ACV_USD__c);
+                    varTCV_USD_Total += parseUSDValue(contract.TCV_USD__c);
+                    varMRR_USD_Total += parseUSDValue(contract.MRR_USD__c);
+                    
+                    // Number reporting field aggregation: ALL contracts
+                    varARR_Reporting_Total += contract.ARR_USD_Reporting__c != null ? contract.ARR_USD_Reporting__c : 0;
+                    varACV_Reporting_Total += contract.ACV_USD_Reporting__c != null ? contract.ACV_USD_Reporting__c : 0;
+                    varTCV_Reporting_Total += contract.TCV_USD_Reporting__c != null ? contract.TCV_USD_Reporting__c : 0;
+                    varMRR_Reporting_Total += contract.MRR_USD_Reporting__c != null ? contract.MRR_USD_Reporting__c : 0;
+                }
+            }
             
         } else {
             // STANDARD LOGIC: Nullify then recalculate revenue from active contracts
@@ -197,24 +203,25 @@ public class AccountRollupBatch implements Database.Batchable<sObject> {
             account.ACV__c = 0;
             account.TCV__c = 0;
             
+            // Split logic: Base currency from ACTIVE contracts, USD from ALL contracts
             for (Contract contract : account.Contracts) {
-                if (contract.StartDate <= today && 
-                    contract.EndDate >= today && 
-                    contract.Exclude_from_Status_Updates__c == false) {
+                if (contract.Exclude_from_Status_Updates__c == false) {
                     
-                    // Add revenue for ACTIVE contracts only (exact flow logic)
-                    account.ARR__c += contract.ARR__c != null ? contract.ARR__c : 0;
-                    account.ACV__c += contract.ACV__c != null ? contract.ACV__c : 0;
-                    account.TCV__c += contract.TCV__c != null ? contract.TCV__c : 0;
-                    account.Incremental_ARR__c += contract.Incremental_ARR__c != null ? contract.Incremental_ARR__c : 0;
+                    // Base currency aggregation: ACTIVE contracts only (preserves existing business logic)
+                    if (contract.StartDate <= today && contract.EndDate >= today) {
+                        account.ARR__c += contract.ARR__c != null ? contract.ARR__c : 0;
+                        account.ACV__c += contract.ACV__c != null ? contract.ACV__c : 0;
+                        account.TCV__c += contract.TCV__c != null ? contract.TCV__c : 0;
+                        account.Incremental_ARR__c += contract.Incremental_ARR__c != null ? contract.Incremental_ARR__c : 0;
+                    }
                     
-                    // USD aggregation for ACTIVE contracts only (exact flow formulas)
+                    // USD aggregation: ALL contracts (ensures full field alignment)
                     varARR_USD_Total += parseUSDValue(contract.ARR_USD__c);
                     varACV_USD_Total += parseUSDValue(contract.ACV_USD__c);
                     varTCV_USD_Total += parseUSDValue(contract.TCV_USD__c);
                     varMRR_USD_Total += parseUSDValue(contract.MRR_USD__c);
                     
-                    // Number reporting field aggregation for ACTIVE contracts only
+                    // Number reporting field aggregation: ALL contracts (ensures full alignment)
                     varARR_Reporting_Total += contract.ARR_USD_Reporting__c != null ? contract.ARR_USD_Reporting__c : 0;
                     varACV_Reporting_Total += contract.ACV_USD_Reporting__c != null ? contract.ACV_USD_Reporting__c : 0;
                     varTCV_Reporting_Total += contract.TCV_USD_Reporting__c != null ? contract.TCV_USD_Reporting__c : 0;
@@ -315,8 +322,8 @@ public class AccountRollupBatch implements Database.Batchable<sObject> {
             return 'Prospect';
         }
         
-        // Rule 4: Churning_To_Churned
-        if (account.Status__c == 'Active (Churning)' && activeContracts == 0 && expiredContracts > 0) {
+        // Rule 4: Churning_To_Churned (only if no open renewals)
+        if (account.Status__c == 'Active (Churning)' && activeContracts == 0 && expiredContracts > 0 && !hasOpenRenewal) {
             return 'Churned';
         }
         

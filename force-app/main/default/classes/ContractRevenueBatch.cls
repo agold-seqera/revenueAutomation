@@ -16,7 +16,7 @@
  *   - If active: Add to ARR, ACV (Total_Price__c), Active_ARR, USD totals, counts
  *   - Calculate MRR = ARR / 12
  *   - Calculate Incremental ARR = IF(ISNULL(Previous_ARR), ARR, ARR - Previous_ARR)
- *   - Format USD fields using CurrencyFormatterHelper
+ *   - Format USD fields using CurrencyFormatterHelper (ALWAYS for full field alignment)
  */
 public class ContractRevenueBatch implements Database.Batchable<sObject>, 
                                             Database.Stateful, 
@@ -386,19 +386,13 @@ public class ContractRevenueBatch implements Database.Batchable<sObject>,
                                          contract.ARR__c;
         }
         
-        // Step 4: USD fields - For USD currency, always recalculate to ensure accuracy
-        // For other currencies, only populate if empty (legacy data safe)
-        Boolean shouldPopulateUSD = false;
-        if (contract.CurrencyIsoCode == 'USD') {
-            // USD contracts: Always recalculate USD fields to match base fields
-            shouldPopulateUSD = true;
-        } else {
-            // Non-USD contracts: Only populate if empty (legacy data safe)
-            shouldPopulateUSD = (String.isBlank(contract.ARR_USD__c) || 
-                                String.isBlank(contract.TCV_USD__c) || 
-                                String.isBlank(contract.ACV_USD__c) ||
-                                String.isBlank(contract.MRR_USD__c) ||
-                                String.isBlank(contract.Active_ARR_USD__c));
+        // Step 4: USD fields - ALWAYS ensure full alignment with base currency fields
+        // This ensures ALL contracts (including expired) have aligned USD values
+        Boolean shouldPopulateUSD = true;
+        
+        // Only skip USD calculation if explicitly excluded from updates
+        if (contract.Exclude_from_Status_Updates__c == true) {
+            shouldPopulateUSD = false;
         }
         
         if (shouldPopulateUSD) {

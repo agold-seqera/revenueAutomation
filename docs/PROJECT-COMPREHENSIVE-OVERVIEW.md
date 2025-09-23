@@ -1,8 +1,8 @@
 # GTM-146 Revenue Automation - Comprehensive Project Overview
 
 **Document Purpose:** Complete project context for agent handoff and collaboration  
-**Last Updated:** September 22, 2025 - 22:09 EDT  
-**Project Status:** ✅ PRODUCTION READY | Test Context Issues Resolved | Midnight Validation Scheduled
+**Last Updated:** September 23, 2025 - 11:32 EDT  
+**Project Status:** ✅ PRODUCTION READY | All Critical Issues Resolved | Revenue Automation Fully Operational
 
 ---
 
@@ -1521,3 +1521,38 @@ if (account.Status__c == 'Active' &&
 - **Accurate Churn Tracking:** Ensures proper churning status for expired accounts with lost renewals
 - **Data Integrity:** Maintains consistent account lifecycle for reporting and analytics
 - **Customer Success Alignment:** Proper status tracking for customer health monitoring
+
+---
+
+## **🔧 SEPTEMBER 23, 2025 - CRITICAL FIXES COMPLETED**
+
+### **Issue Resolution Summary**
+Following comprehensive overnight batch validation, three critical issues were identified and resolved:
+
+#### **1. USD Field Alignment Issue ✅**
+- **Problem:** Expired contracts showing $0.00 for USD fields instead of properly converted values
+- **Root Cause:** ContractRevenueBatch was not populating USD fields for expired contracts
+- **Solution:** Modified logic to ALWAYS ensure USD field alignment regardless of contract status
+- **Impact:** 42 expired contracts corrected with proper USD and USD reporting field values
+
+#### **2. Account Status Rule Priority Bug ✅**
+- **Problem:** Accounts with expired contracts + open renewals incorrectly moved to "Churned" instead of "Active (Churning)"
+- **Root Cause:** AccountRollupBatch Rule 4 executed before Rule 7, missing open renewal check
+- **Solution:** Added `!hasOpenRenewal` condition to Rule 4 to prevent premature churning
+- **Impact:** 3 accounts restored to correct "Active (Churning)" status
+
+#### **3. Revenue Preservation Logic Correction ✅**
+- **Problem:** Initial attempt to make Active (Churning) calculate like Active accounts would result in $0 revenue
+- **Root Cause:** Active (Churning) accounts have expired contracts, so "active calculation" = $0
+- **Solution:** Maintained proper revenue preservation for Active (Churning) until renewal resolves
+- **Impact:** Correct revenue reporting for accounts in churning state with open renewals
+
+### **Deployment & Verification**
+- **Production Deployment:** September 23, 2025 - 10:42 EDT
+- **Test Results:** 136/136 tests passing (100%)
+- **Accounts Corrected:** 
+  - Pioneering Medicines Explorations Inc. (001fJ000021Y30LQAS)
+  - LifeMine Therapeutics Inc (001fJ000021YDsNQAW)
+  - Scale Biosciences (001fJ000021YDYZQA4)
+- **Batch Execution:** AccountRollupBatch re-run with corrected logic
+- **Status:** All revenue automation systems fully operational

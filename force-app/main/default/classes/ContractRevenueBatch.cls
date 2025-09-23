@@ -394,91 +394,91 @@ public class ContractRevenueBatch implements Database.Batchable<sObject>,
                                          contract.ARR__c;
         }
         
-        // Step 4: USD fields - ALWAYS ensure full alignment with base currency fields
-        // This ensures ALL contracts (including expired) have aligned USD values
-        Boolean shouldPopulateUSD = true;
+        // Step 4: USD fields - Handle USD field population correctly
+        Boolean shouldPopulateUSD = false;
         
-        // Only skip USD calculation if explicitly excluded from updates
-        if (contract.Exclude_from_Status_Updates__c == true) {
-            shouldPopulateUSD = false;
+        // Recalculate USD fields for active contracts
+        if (contract.Exclude_from_Status_Updates__c != true && shouldPopulateRevenue) {
+            shouldPopulateUSD = true;
+        }
+        
+        // For Expired contracts: populate USD fields ONLY if they're currently empty (legacy data fix)
+        // This preserves historical data while filling gaps from before USD tracking
+        if (contract.Exclude_from_Status_Updates__c != true && 
+            contract.Status == 'Expired' && 
+            (contract.ARR_USD__c == null || String.isBlank(contract.ARR_USD__c)) &&
+            contract.ARR__c != null && contract.ARR__c > 0) {
+            shouldPopulateUSD = true;
         }
         
         if (shouldPopulateUSD) {
-            // Calculate USD totals from assets (even if revenue fields weren't recalculated)
+            // Calculate USD totals - use contract base fields for USD conversion
             Decimal varARR_Total = 0;
             Decimal varACV_Total = 0;
             Decimal varTCV_Total = 0;
             Decimal varActiveARR_Total = 0;
             Decimal varMRR_Total = 0;
             
-            for (Asset asset : contract.Assets__r) {
-                // TCV calculation (corrected division formula)
-                Decimal forTCV_USD = (asset.Total_Value__c != null ? asset.Total_Value__c : 0) / 
-                                     (asset.Exchange_Rate__c != null ? asset.Exchange_Rate__c : 1);
-                varTCV_Total += forTCV_USD;
-                
-                // Active asset USD calculations
-                if (asset.Start_Date__c <= today && 
-                    asset.End_Date__c >= today && 
-                    RECURRING_REVENUE_FAMILIES.contains(asset.ProductFamily)) {
-                    
-                    Decimal forARR_USD = (asset.ARR__c != null ? asset.ARR__c : 0) / 
-                                         (asset.Exchange_Rate__c != null ? asset.Exchange_Rate__c : 1);
-                    Decimal forACV_USD = (asset.Total_Price__c != null ? asset.Total_Price__c : 0) / 
-                                         (asset.Exchange_Rate__c != null ? asset.Exchange_Rate__c : 1);
-                    // Calculate MRR from ARR (MRR = ARR / 12)
-                    Decimal assetMRR = (asset.ARR__c != null ? asset.ARR__c / 12 : 0);
-                    Decimal forMRR_USD = assetMRR / (asset.Exchange_Rate__c != null ? asset.Exchange_Rate__c : 1);
-                    
-                    varARR_Total += forARR_USD;
-                    varACV_Total += forACV_USD;
-                    varActiveARR_Total += forARR_USD;
-                    varMRR_Total += forMRR_USD;
-                }
+            // Get exchange rate from first asset (or default to 1.0 for USD)
+            Decimal exchangeRate = 1.0;
+            if (!contract.Assets__r.isEmpty() && contract.Assets__r[0].Exchange_Rate__c != null) {
+                exchangeRate = contract.Assets__r[0].Exchange_Rate__c;
+            }
+            
+            // For USD conversion, use contract base currency fields (already calculated)
+            if (contract.CurrencyIsoCode == 'USD') {
+                // USD contracts: direct copy
+                varARR_Total = (contract.ARR__c != null ? contract.ARR__c : 0);
+                varACV_Total = (contract.ACV__c != null ? contract.ACV__c : 0);
+                varTCV_Total = (contract.TCV__c != null ? contract.TCV__c : 0);
+                varMRR_Total = (contract.MRR__c != null ? contract.MRR__c : 0);
+                varActiveARR_Total = (contract.Active_ARR__c != null ? contract.Active_ARR__c : 0);
+            } else {
+                // Non-USD contracts: convert using exchange rate
+                varARR_Total = (contract.ARR__c != null ? contract.ARR__c / exchangeRate : 0);
+                varACV_Total = (contract.ACV__c != null ? contract.ACV__c / exchangeRate : 0);
+                varTCV_Total = (contract.TCV__c != null ? contract.TCV__c / exchangeRate : 0);
+                varMRR_Total = (contract.MRR__c != null ? contract.MRR__c / exchangeRate : 0);
+                varActiveARR_Total = (contract.Active_ARR__c != null ? contract.Active_ARR__c / exchangeRate : 0);
             }
             
             // Step 5: Format currency using CurrencyFormatterHelper
             try {
                 // For USD currency: always update, for others: only if blank
-                if (contract.CurrencyIsoCode == 'USD' || String.isBlank(contract.ARR_USD__c)) {
-                    CurrencyFormatterHelper.FormatInput request1 = new CurrencyFormatterHelper.FormatInput();
-                    request1.amount = varARR_Total;
-                    List<CurrencyFormatterHelper.FormatInput> requests1 = new List<CurrencyFormatterHelper.FormatInput>{request1};
-                    List<CurrencyFormatterHelper.FormatOutput> responses1 = CurrencyFormatterHelper.formatCurrency(requests1);
-                    contract.ARR_USD__c = responses1[0].formattedAmount;
-                }
+                // ALWAYS populate ARR_USD__c for full field alignment
+                CurrencyFormatterHelper.FormatInput request1 = new CurrencyFormatterHelper.FormatInput();
+                request1.amount = varARR_Total;
+                List<CurrencyFormatterHelper.FormatInput> requests1 = new List<CurrencyFormatterHelper.FormatInput>{request1};
+                List<CurrencyFormatterHelper.FormatOutput> responses1 = CurrencyFormatterHelper.formatCurrency(requests1);
+                contract.ARR_USD__c = responses1[0].formattedAmount;
                 
-                if (contract.CurrencyIsoCode == 'USD' || String.isBlank(contract.ACV_USD__c)) {
-                    CurrencyFormatterHelper.FormatInput request2 = new CurrencyFormatterHelper.FormatInput();
-                    request2.amount = varACV_Total;
-                    List<CurrencyFormatterHelper.FormatInput> requests2 = new List<CurrencyFormatterHelper.FormatInput>{request2};
-                    List<CurrencyFormatterHelper.FormatOutput> responses2 = CurrencyFormatterHelper.formatCurrency(requests2);
-                    contract.ACV_USD__c = responses2[0].formattedAmount;
-                }
+                // ALWAYS populate ACV_USD__c for full field alignment
+                CurrencyFormatterHelper.FormatInput request2 = new CurrencyFormatterHelper.FormatInput();
+                request2.amount = varACV_Total;
+                List<CurrencyFormatterHelper.FormatInput> requests2 = new List<CurrencyFormatterHelper.FormatInput>{request2};
+                List<CurrencyFormatterHelper.FormatOutput> responses2 = CurrencyFormatterHelper.formatCurrency(requests2);
+                contract.ACV_USD__c = responses2[0].formattedAmount;
                 
-                if (contract.CurrencyIsoCode == 'USD' || String.isBlank(contract.TCV_USD__c)) {
-                    CurrencyFormatterHelper.FormatInput request3 = new CurrencyFormatterHelper.FormatInput();
-                    request3.amount = varTCV_Total;
-                    List<CurrencyFormatterHelper.FormatInput> requests3 = new List<CurrencyFormatterHelper.FormatInput>{request3};
-                    List<CurrencyFormatterHelper.FormatOutput> responses3 = CurrencyFormatterHelper.formatCurrency(requests3);
-                    contract.TCV_USD__c = responses3[0].formattedAmount;
-                }
+                // ALWAYS populate TCV_USD__c for full field alignment
+                CurrencyFormatterHelper.FormatInput request3 = new CurrencyFormatterHelper.FormatInput();
+                request3.amount = varTCV_Total;
+                List<CurrencyFormatterHelper.FormatInput> requests3 = new List<CurrencyFormatterHelper.FormatInput>{request3};
+                List<CurrencyFormatterHelper.FormatOutput> responses3 = CurrencyFormatterHelper.formatCurrency(requests3);
+                contract.TCV_USD__c = responses3[0].formattedAmount;
                 
-                if (contract.CurrencyIsoCode == 'USD' || String.isBlank(contract.Active_ARR_USD__c)) {
-                    CurrencyFormatterHelper.FormatInput request4 = new CurrencyFormatterHelper.FormatInput();
-                    request4.amount = varActiveARR_Total;
-                    List<CurrencyFormatterHelper.FormatInput> requests4 = new List<CurrencyFormatterHelper.FormatInput>{request4};
-                    List<CurrencyFormatterHelper.FormatOutput> responses4 = CurrencyFormatterHelper.formatCurrency(requests4);
-                    contract.Active_ARR_USD__c = responses4[0].formattedAmount;
-                }
+                // ALWAYS populate Active_ARR_USD__c for full field alignment
+                CurrencyFormatterHelper.FormatInput request4 = new CurrencyFormatterHelper.FormatInput();
+                request4.amount = varActiveARR_Total;
+                List<CurrencyFormatterHelper.FormatInput> requests4 = new List<CurrencyFormatterHelper.FormatInput>{request4};
+                List<CurrencyFormatterHelper.FormatOutput> responses4 = CurrencyFormatterHelper.formatCurrency(requests4);
+                contract.Active_ARR_USD__c = responses4[0].formattedAmount;
                 
-                if (contract.CurrencyIsoCode == 'USD' || String.isBlank(contract.MRR_USD__c)) {
-                    CurrencyFormatterHelper.FormatInput request5 = new CurrencyFormatterHelper.FormatInput();
-                    request5.amount = varMRR_Total;
-                    List<CurrencyFormatterHelper.FormatInput> requests5 = new List<CurrencyFormatterHelper.FormatInput>{request5};
-                    List<CurrencyFormatterHelper.FormatOutput> responses5 = CurrencyFormatterHelper.formatCurrency(requests5);
-                    contract.MRR_USD__c = responses5[0].formattedAmount;
-                }
+                // ALWAYS populate MRR_USD__c for full field alignment
+                CurrencyFormatterHelper.FormatInput request5 = new CurrencyFormatterHelper.FormatInput();
+                request5.amount = varMRR_Total;
+                List<CurrencyFormatterHelper.FormatInput> requests5 = new List<CurrencyFormatterHelper.FormatInput>{request5};
+                List<CurrencyFormatterHelper.FormatOutput> responses5 = CurrencyFormatterHelper.formatCurrency(requests5);
+                contract.MRR_USD__c = responses5[0].formattedAmount;
                 
                 needsUpdate = true;
                 
@@ -487,27 +487,22 @@ public class ContractRevenueBatch implements Database.Batchable<sObject>,
             }
             
             // Step 5.5: Populate Number reporting fields 
-            // For USD currency: always update, for others: only if empty
+            // ALWAYS populate ALL USD reporting fields for full field alignment
             try {
-                if (contract.CurrencyIsoCode == 'USD' || contract.ARR_USD_Reporting__c == null) {
-                    contract.ARR_USD_Reporting__c = varARR_Total;
-                }
+                // ALWAYS populate ARR_USD_Reporting__c for full field alignment
+                contract.ARR_USD_Reporting__c = varARR_Total;
                 
-                if (contract.CurrencyIsoCode == 'USD' || contract.ACV_USD_Reporting__c == null) {
-                    contract.ACV_USD_Reporting__c = varACV_Total;
-                }
+                // ALWAYS populate ACV_USD_Reporting__c for full field alignment
+                contract.ACV_USD_Reporting__c = varACV_Total;
                 
-                if (contract.CurrencyIsoCode == 'USD' || contract.TCV_USD_Reporting__c == null) {
-                    contract.TCV_USD_Reporting__c = varTCV_Total;
-                }
+                // ALWAYS populate TCV_USD_Reporting__c for full field alignment
+                contract.TCV_USD_Reporting__c = varTCV_Total;
                 
-                if (contract.CurrencyIsoCode == 'USD' || contract.MRR_USD_Reporting__c == null) {
-                    contract.MRR_USD_Reporting__c = varMRR_Total;
-                }
+                // ALWAYS populate MRR_USD_Reporting__c for full field alignment
+                contract.MRR_USD_Reporting__c = varMRR_Total;
                 
-                if (contract.CurrencyIsoCode == 'USD' || contract.Active_ARR_USD_Reporting__c == null) {
-                    contract.Active_ARR_USD_Reporting__c = varActiveARR_Total;
-                }
+                // ALWAYS populate Active_ARR_USD_Reporting__c for full field alignment
+                contract.Active_ARR_USD_Reporting__c = varActiveARR_Total;
                 
                 needsUpdate = true;
                 
@@ -534,20 +529,16 @@ public class ContractRevenueBatch implements Database.Batchable<sObject>,
         // For USD currency: always update if empty, for others: only if empty
         if (contract.CurrencyIsoCode == 'USD' || shouldPopulateUSD) {
             try {
-                // Incremental ARR USD
-                if (contract.CurrencyIsoCode == 'USD' || String.isBlank(contract.Incremental_ARR_USD__c)) {
-                    if (contract.Incremental_ARR__c != null) {
-                        CurrencyFormatterHelper.FormatInput incrementalRequest = new CurrencyFormatterHelper.FormatInput();
-                        incrementalRequest.amount = contract.Incremental_ARR__c;
-                        List<CurrencyFormatterHelper.FormatInput> incrementalRequests = new List<CurrencyFormatterHelper.FormatInput>{incrementalRequest};
-                        List<CurrencyFormatterHelper.FormatOutput> incrementalResponses = CurrencyFormatterHelper.formatCurrency(incrementalRequests);
-                        contract.Incremental_ARR_USD__c = incrementalResponses[0].formattedAmount;
-                        
-                        // Also update reporting field
-                        if (contract.CurrencyIsoCode == 'USD' || contract.Incremental_ARR_USD_Reporting__c == null) {
-                            contract.Incremental_ARR_USD_Reporting__c = contract.Incremental_ARR__c;
-                        }
-                    }
+                // ALWAYS populate Incremental ARR USD fields for full field alignment
+                if (contract.Incremental_ARR__c != null) {
+                    CurrencyFormatterHelper.FormatInput incrementalRequest = new CurrencyFormatterHelper.FormatInput();
+                    incrementalRequest.amount = contract.Incremental_ARR__c;
+                    List<CurrencyFormatterHelper.FormatInput> incrementalRequests = new List<CurrencyFormatterHelper.FormatInput>{incrementalRequest};
+                    List<CurrencyFormatterHelper.FormatOutput> incrementalResponses = CurrencyFormatterHelper.formatCurrency(incrementalRequests);
+                    contract.Incremental_ARR_USD__c = incrementalResponses[0].formattedAmount;
+                    
+                    // ALWAYS populate Incremental_ARR_USD_Reporting__c for full field alignment
+                    contract.Incremental_ARR_USD_Reporting__c = contract.Incremental_ARR__c;
                 }
                 
                 // Previous fields USD (only if they have values)

@@ -1,13 +1,13 @@
-// Run RevenueAutomationBatchManager immediately to process backlog
-System.debug('=== RUNNING BATCH MANAGER IMMEDIATELY ===');
+// Execute RevenueAutomationBatchManager immediately for final validation
 
-try {
-    RevenueAutomationBatchManager batchManager = new RevenueAutomationBatchManager();
-    Id jobId = Database.executeBatch(batchManager, 200);
-    System.debug('Successfully started RevenueAutomationBatchManager with Job ID: ' + jobId);
-    System.debug('This will process the backlog of USD conversions and revenue calculations');
-} catch(Exception e) {
-    System.debug('ERROR running batch manager: ' + e.getMessage());
-}
+System.debug('=== EXECUTING REVENUE AUTOMATION BATCH MANAGER FOR FINAL VALIDATION ===');
 
-System.debug('=== END BATCH EXECUTION ===');
+// Execute the batch manager directly
+RevenueAutomationBatchManager batchManager = new RevenueAutomationBatchManager();
+batchManager.execute(null); // Execute directly
+
+System.debug('✓ RevenueAutomationBatchManager executed directly');
+System.debug('This runs all three batches: ContractRevenueBatch → AccountRollupBatch → AssetStatusBatch');
+System.debug('Check debug logs for execution results');
+
+System.debug('=== BATCH MANAGER EXECUTION INITIATED ===');

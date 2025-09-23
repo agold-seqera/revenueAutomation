@@ -140,6 +140,21 @@ public with sharing class ContractTriggerHandler {
                     contractToUpdate.TCV_USD__c = formattedTCV;
                     contractToUpdate.Initial_MRR_USD__c = formattedMRR;
                     contractToUpdate.MRR_USD__c = formattedMRR;
+                    
+                    // Also populate USD Reporting fields (decimal values for calculations/aggregation)
+                    Decimal arrUSD = (info.contract.Initial_ARR__c != null) ? info.contract.Initial_ARR__c * info.exchangeRate : 0;
+                    Decimal acvUSD = (info.contract.Initial_ACV__c != null) ? info.contract.Initial_ACV__c * info.exchangeRate : 0;
+                    Decimal tcvUSD = (info.contract.Initial_TCV__c != null) ? info.contract.Initial_TCV__c * info.exchangeRate : 0;
+                    Decimal mrrUSD = (info.contract.Initial_MRR__c != null) ? info.contract.Initial_MRR__c * info.exchangeRate : 0;
+                    
+                    contractToUpdate.Initial_ARR_USD_Reporting__c = arrUSD;
+                    contractToUpdate.ARR_USD_Reporting__c = arrUSD;
+                    contractToUpdate.Initial_ACV_USD_Reporting__c = acvUSD;
+                    contractToUpdate.ACV_USD_Reporting__c = acvUSD;
+                    contractToUpdate.Initial_TCV_USD_Reporting__c = tcvUSD;
+                    contractToUpdate.TCV_USD_Reporting__c = tcvUSD;
+                    contractToUpdate.Initial_MRR_USD_Reporting__c = mrrUSD;
+                    contractToUpdate.MRR_USD_Reporting__c = mrrUSD;
                 }
                 
                 // Calculate Incremental ARR if needed
@@ -184,6 +199,12 @@ public with sharing class ContractTriggerHandler {
                         contractToUpdate.Previous_ACV_USD__c = previousOutputs[1].formattedAmount;
                         contractToUpdate.Previous_TCV_USD__c = previousOutputs[2].formattedAmount;
                         contractToUpdate.Previous_MRR_USD__c = previousOutputs[3].formattedAmount;
+                        
+                        // Also populate Previous USD Reporting fields (decimal values for calculations/aggregation)
+                        contractToUpdate.Previous_ARR_USD_Reporting__c = previousARR_USD;
+                        contractToUpdate.Previous_ACV_USD_Reporting__c = previousACV_USD;
+                        contractToUpdate.Previous_TCV_USD_Reporting__c = previousTCV_USD;
+                        contractToUpdate.Previous_MRR_USD_Reporting__c = previousMRR_USD;
                     }
                     
                     // Calculate Incremental ARR USD using the same exchange rate
@@ -197,6 +218,9 @@ public with sharing class ContractTriggerHandler {
                     
                     List<CurrencyFormatterHelper.FormatOutput> incrementalOutput = CurrencyFormatterHelper.formatCurrency(incrementalInput);
                     contractToUpdate.Incremental_ARR_USD__c = incrementalOutput[0].formattedAmount;
+                    
+                    // Also populate Incremental_ARR_USD_Reporting__c (decimal value for calculations/aggregation)
+                    contractToUpdate.Incremental_ARR_USD_Reporting__c = incrementalARR_USD;
                 }
                 
                 contractsToUpdate.add(contractToUpdate);
@@ -285,8 +309,11 @@ public with sharing class ContractTriggerHandler {
                        Initial_ARR__c, Initial_ACV__c, Initial_TCV__c, Initial_MRR__c,
                        ARR_USD__c, ACV_USD__c, TCV_USD__c, MRR_USD__c,
                        Initial_ARR_USD__c, Initial_ACV_USD__c, Initial_TCV_USD__c, Initial_MRR_USD__c,
-                       Incremental_ARR__c, Incremental_ARR_USD__c, Previous_ARR__c, 
-                       Previous_ARR_USD__c, Previous_ACV_USD__c, Previous_TCV_USD__c, Previous_MRR_USD__c
+                       ARR_USD_Reporting__c, ACV_USD_Reporting__c, TCV_USD_Reporting__c, MRR_USD_Reporting__c,
+                       Initial_ARR_USD_Reporting__c, Initial_ACV_USD_Reporting__c, Initial_TCV_USD_Reporting__c, Initial_MRR_USD_Reporting__c,
+                       Incremental_ARR__c, Incremental_ARR_USD__c, Incremental_ARR_USD_Reporting__c, Previous_ARR__c, 
+                       Previous_ARR_USD__c, Previous_ACV_USD__c, Previous_TCV_USD__c, Previous_MRR_USD__c,
+                       Previous_ARR_USD_Reporting__c, Previous_ACV_USD_Reporting__c, Previous_TCV_USD_Reporting__c, Previous_MRR_USD_Reporting__c
                 FROM Contract
                 WHERE Id IN :contractIds
                 AND Status = 'Draft'

@@ -402,14 +402,15 @@ public class ContractRevenueBatch implements Database.Batchable<sObject>,
             shouldPopulateUSD = true;
         }
         
-        // For Expired contracts: populate USD fields ONLY if they're currently empty (legacy data fix)
+        // For Expired contracts: populate USD fields if they're empty OR showing $0.00 (legacy data fix)
         // This preserves historical data while filling gaps from before USD tracking
         if (contract.Exclude_from_Status_Updates__c != true && 
             contract.Status == 'Expired' && 
-            (contract.ARR_USD__c == null || String.isBlank(contract.ARR_USD__c)) &&
+            (contract.ARR_USD__c == null || String.isBlank(contract.ARR_USD__c) || contract.ARR_USD__c == '$0.00' || contract.ARR_USD__c == '$0') &&
             contract.ARR__c != null && contract.ARR__c > 0) {
             shouldPopulateUSD = true;
         }
+        
         
         if (shouldPopulateUSD) {
             // Calculate USD totals - use contract base fields for USD conversion

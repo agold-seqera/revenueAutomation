@@ -187,25 +187,25 @@ public class AccountRollupBatch implements Database.Batchable<sObject> {
             account.TCV__c = 0;
             account.Incremental_ARR__c = 0;
             
-            // Single loop, single condition - calculate ALL fields from ACTIVE contracts
+            // Single loop, single condition - calculate ALL fields from ACTIVE and FUTURE contracts
             for (Contract contract : account.Contracts) {
                 if (contract.Exclude_from_Status_Updates__c == false && 
-                    contract.StartDate <= today && 
-                    contract.EndDate >= today) {
+                    ((contract.StartDate <= today && contract.EndDate >= today) ||    // Active contracts
+                     (contract.StartDate > today))) {                                 // Future contracts
                     
-                    // Base currency fields from ACTIVE contracts
+                    // Base currency fields from ACTIVE and FUTURE contracts
                     account.ARR__c += contract.ARR__c != null ? contract.ARR__c : 0;
                     account.ACV__c += contract.ACV__c != null ? contract.ACV__c : 0;
                     account.TCV__c += contract.TCV__c != null ? contract.TCV__c : 0;
                     account.Incremental_ARR__c += contract.Incremental_ARR__c != null ? contract.Incremental_ARR__c : 0;
                     
-                    // USD fields from SAME ACTIVE contracts
+                    // USD fields from SAME ACTIVE and FUTURE contracts
                     varARR_USD_Total += parseUSDValue(contract.ARR_USD__c);
                     varACV_USD_Total += parseUSDValue(contract.ACV_USD__c);
                     varTCV_USD_Total += parseUSDValue(contract.TCV_USD__c);
                     varMRR_USD_Total += parseUSDValue(contract.MRR_USD__c);
                     
-                    // Reporting fields from SAME ACTIVE contracts
+                    // Reporting fields from SAME ACTIVE and FUTURE contracts
                     varARR_Reporting_Total += contract.ARR_USD_Reporting__c != null ? contract.ARR_USD_Reporting__c : 0;
                     varACV_Reporting_Total += contract.ACV_USD_Reporting__c != null ? contract.ACV_USD_Reporting__c : 0;
                     varTCV_Reporting_Total += contract.TCV_USD_Reporting__c != null ? contract.TCV_USD_Reporting__c : 0;
@@ -311,9 +311,9 @@ public class AccountRollupBatch implements Database.Batchable<sObject> {
             return 'Prospect';
         }
         
-        // Rule 3: Only_Future_Contracts
+        // Rule 3: Only_Future_Contracts - should be Contracted, not Prospect
         if (futureContracts > 0 && activeContracts == 0) {
-            return 'Prospect';
+            return 'Contracted';
         }
         
         // Rule 4: Churning_To_Churned (only if no open renewals)

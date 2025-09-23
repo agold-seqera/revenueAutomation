@@ -2,10 +2,10 @@
  * Batch class to replace Scheduled_Flow_Daily_Update_Accounts (v42)
  * Replicates EXACT flow business logic for account revenue rollups and enhanced status updates
  * 
- * Flow Logic Replicated (v42 Enhanced):
+ * SIMPLIFIED Business Logic (v43):
  * - Processes accounts with Has_Contracts__c = true
- * - Revenue Rollup: Sum ARR, ACV, TCV, MRR, Incremental_ARR from contracts
- * - USD Rollup: Parse and sum formatted USD fields from contracts
+ * - ACTIVE accounts: Recalculate ALL fields (base + USD + reporting) from ACTIVE contracts only
+ * - CHURNING/CHURNED accounts: PRESERVE ALL existing field values (no changes)
  * - Enhanced Status Logic (v42):
  *   - Check for contracts with renewal opportunities
  *   - Detect open vs lost renewals
@@ -92,20 +92,18 @@ public class AccountRollupBatch implements Database.Batchable<sObject> {
  * 9. Update_Account
      */
     private Account processAccount(Account account, Date today) {
-        // Initialize USD totals and tracking variables
+        // Initialize tracking variables
         Decimal varARR_USD_Total = 0;
         Decimal varACV_USD_Total = 0;
         Decimal varTCV_USD_Total = 0;
         Decimal varMRR_USD_Total = 0;
-        Decimal varIncrementalARR_USD_Total = 0;
         
-        // Initialize Number reporting field totals
         Decimal varARR_Reporting_Total = 0;
         Decimal varACV_Reporting_Total = 0;
         Decimal varTCV_Reporting_Total = 0;
         Decimal varMRR_Reporting_Total = 0;
         
-        // v42 Enhancement variables
+        // v42 Enhancement variables for status determination
         Boolean varB_HasOpenRenewal = false;
         Boolean varB_HasLostRenewal = false;
         Boolean varB_AllContractsCancelled = false;
@@ -115,10 +113,7 @@ public class AccountRollupBatch implements Database.Batchable<sObject> {
         Decimal varN_FutureContracts = 0;
         Decimal varN_NumExpiredContracts = 0;
         
-        // Revenue preservation flag
-        Boolean shouldPreserveExpiredRevenue = false;
-        
-        // Step 2-3: Process contracts with renewals (v42 enhancement)
+        // Step 1: Process contracts with renewals (v42 enhancement)
         for (Contract contract : account.Contracts) {
             if (contract.Renewal_Opportunity__c != null) {
                 // Check_Renewal_Status logic
@@ -131,7 +126,7 @@ public class AccountRollupBatch implements Database.Batchable<sObject> {
             }
         }
         
-        // Step 4: Check if all contracts are cancelled
+        // Step 2: Check if all contracts are cancelled
         Integer totalContracts = account.Contracts.size();
         Integer cancelledContracts = 0;
         for (Contract contract : account.Contracts) {
@@ -141,7 +136,7 @@ public class AccountRollupBatch implements Database.Batchable<sObject> {
         }
         varB_AllContractsCancelled = (cancelledContracts == totalContracts && totalContracts > 0);
         
-        // Step 6: Loop_Contracts - Contract counting first (to determine preservation logic)
+        // Step 3: Contract counting (to determine preservation logic)
         for (Contract contract : account.Contracts) {
             // Contract counting logic (exact flow replication)
             if (contract.StartDate > today && contract.Exclude_from_Status_Updates__c == false) {
@@ -155,73 +150,62 @@ public class AccountRollupBatch implements Database.Batchable<sObject> {
             }
         }
         
-        // CRITICAL BUSINESS LOGIC: Expired Contract Revenue Preservation
-        // Scenario 1: "if all contracts are expired that's when we preserve the expired amount"
+        // Step 4: Determine if we should preserve expired revenue
+        // Scenario 1: All contracts expired (churned accounts)
         Boolean preserveAllExpired = (varN_ActiveContracts == 0 && 
                                      varN_FutureContracts == 0 && 
                                      varN_NumExpiredContracts > 0 &&
                                      !varB_AllContractsCancelled);
         
-        // Scenario 2: All contracts expired but open renewals - preserve until renewal resolves
-        // Active (Churning) accounts should preserve expired revenue until renewal outcome is known
+        // Scenario 2: All contracts expired but has open renewals (churning accounts)
         Boolean preserveExpiredWithOpenRenewal = (varN_ActiveContracts == 0 && 
                                                  varN_FutureContracts == 0 && 
                                                  varN_NumExpiredContracts > 0 &&
                                                  varB_HasOpenRenewal);
         
-        shouldPreserveExpiredRevenue = preserveAllExpired || preserveExpiredWithOpenRenewal;
+        Boolean shouldPreserveExpiredRevenue = preserveAllExpired || preserveExpiredWithOpenRenewal;
         
+        // Step 5: SIMPLIFIED REVENUE CALCULATION
         if (shouldPreserveExpiredRevenue) {
-            // PRESERVE existing revenue - don't nullify, don't recalculate
-            System.debug('AccountRollupBatch: Preserving expired revenue for account ' + account.Id + 
+            // PRESERVE ALL EXISTING VALUES - don't touch any fields
+            System.debug('AccountRollupBatch: Preserving ALL revenue fields for account ' + account.Id + 
                         ' (Active: ' + varN_ActiveContracts + ', Future: ' + varN_FutureContracts + 
                         ', Expired: ' + varN_NumExpiredContracts + ', HasOpenRenewal: ' + varB_HasOpenRenewal + 
                         ', Scenario: ' + (preserveAllExpired ? 'AllExpired' : 'ExpiredWithOpenRenewal') + ')');
             
-            // PRESERVE base currency, but RECALCULATE USD from ALL contracts for full alignment
-            // This ensures even preserved accounts have accurate USD totals
-            for (Contract contract : account.Contracts) {
-                if (contract.Exclude_from_Status_Updates__c == false) {
-                    // USD aggregation: ALL contracts (ensures alignment even during preservation)
-                    varARR_USD_Total += parseUSDValue(contract.ARR_USD__c);
-                    varACV_USD_Total += parseUSDValue(contract.ACV_USD__c);
-                    varTCV_USD_Total += parseUSDValue(contract.TCV_USD__c);
-                    varMRR_USD_Total += parseUSDValue(contract.MRR_USD__c);
-                    
-                    // Number reporting field aggregation: ALL contracts
-                    varARR_Reporting_Total += contract.ARR_USD_Reporting__c != null ? contract.ARR_USD_Reporting__c : 0;
-                    varACV_Reporting_Total += contract.ACV_USD_Reporting__c != null ? contract.ACV_USD_Reporting__c : 0;
-                    varTCV_Reporting_Total += contract.TCV_USD_Reporting__c != null ? contract.TCV_USD_Reporting__c : 0;
-                    varMRR_Reporting_Total += contract.MRR_USD_Reporting__c != null ? contract.MRR_USD_Reporting__c : 0;
-                }
-            }
+            // Don't recalculate anything - values were correct when account was Active
+            // USD totals remain 0 so formatting below will preserve existing values
             
         } else {
-            // STANDARD LOGIC: Nullify then recalculate revenue from active contracts
+            // ACTIVE ACCOUNT - recalculate ALL fields from ACTIVE contracts only
+            System.debug('AccountRollupBatch: Recalculating all revenue fields from active contracts for account ' + account.Id + 
+                        ' (Active: ' + varN_ActiveContracts + ')');
+            
+            // Reset base currency fields
             account.ARR__c = 0;
-            account.Incremental_ARR__c = 0;
             account.ACV__c = 0;
             account.TCV__c = 0;
+            account.Incremental_ARR__c = 0;
             
-            // Split logic: Base currency from ACTIVE contracts, USD from ALL contracts
+            // Single loop, single condition - calculate ALL fields from ACTIVE contracts
             for (Contract contract : account.Contracts) {
-                if (contract.Exclude_from_Status_Updates__c == false) {
+                if (contract.Exclude_from_Status_Updates__c == false && 
+                    contract.StartDate <= today && 
+                    contract.EndDate >= today) {
                     
-                    // Base currency aggregation: ACTIVE contracts only (preserves existing business logic)
-                    if (contract.StartDate <= today && contract.EndDate >= today) {
-                        account.ARR__c += contract.ARR__c != null ? contract.ARR__c : 0;
-                        account.ACV__c += contract.ACV__c != null ? contract.ACV__c : 0;
-                        account.TCV__c += contract.TCV__c != null ? contract.TCV__c : 0;
-                        account.Incremental_ARR__c += contract.Incremental_ARR__c != null ? contract.Incremental_ARR__c : 0;
-                    }
+                    // Base currency fields from ACTIVE contracts
+                    account.ARR__c += contract.ARR__c != null ? contract.ARR__c : 0;
+                    account.ACV__c += contract.ACV__c != null ? contract.ACV__c : 0;
+                    account.TCV__c += contract.TCV__c != null ? contract.TCV__c : 0;
+                    account.Incremental_ARR__c += contract.Incremental_ARR__c != null ? contract.Incremental_ARR__c : 0;
                     
-                    // USD aggregation: ALL contracts (ensures full field alignment)
+                    // USD fields from SAME ACTIVE contracts
                     varARR_USD_Total += parseUSDValue(contract.ARR_USD__c);
                     varACV_USD_Total += parseUSDValue(contract.ACV_USD__c);
                     varTCV_USD_Total += parseUSDValue(contract.TCV_USD__c);
                     varMRR_USD_Total += parseUSDValue(contract.MRR_USD__c);
                     
-                    // Number reporting field aggregation: ALL contracts (ensures full alignment)
+                    // Reporting fields from SAME ACTIVE contracts
                     varARR_Reporting_Total += contract.ARR_USD_Reporting__c != null ? contract.ARR_USD_Reporting__c : 0;
                     varACV_Reporting_Total += contract.ACV_USD_Reporting__c != null ? contract.ACV_USD_Reporting__c : 0;
                     varTCV_Reporting_Total += contract.TCV_USD_Reporting__c != null ? contract.TCV_USD_Reporting__c : 0;
@@ -230,47 +214,51 @@ public class AccountRollupBatch implements Database.Batchable<sObject> {
             }
         }
         
-        // Step 7: Account_Status decision (v42 enhanced logic)
+        // Step 6: Account status determination (v42 enhanced logic)
         String newStatus = determineAccountStatus(account, varN_ActiveContracts, varN_FutureContracts, 
                                                  varN_NumExpiredContracts, varB_HasOpenRenewal, 
                                                  varB_HasLostRenewal, varB_AllContractsCancelled);
         if (newStatus != null) {
             account.Status__c = newStatus;
             
-            // Step 7.5: Update Type field based on Status__c (replaces flow logic)
+            // Update Type field based on Status__c (replaces flow logic)
             String newType = determineAccountType(newStatus);
             if (newType != null) {
                 account.Type = newType;
             }
         }
         
-        // Step 8: Calculate MRR (exact flow formula)
-        // Only recalculate MRR if we're not preserving expired revenue
+        // Step 7: Calculate MRR for active accounts only
         if (!shouldPreserveExpiredRevenue) {
             account.MRR__c = account.ARR__c != null ? account.ARR__c / 12 : 0;
         }
-        // If preserving, keep existing MRR value
+        // For preserved accounts, keep existing MRR value
         
-        // Step 9: Format USD fields (exact flow logic)
-        try {
-            // Format using exact flow formulas
-            account.ARR_USD__c = '$' + String.valueOf(varARR_USD_Total.setScale(2).format());
-            account.ACV_USD__c = '$' + String.valueOf(varACV_USD_Total.setScale(2).format());
-            account.TCV_USD__c = '$' + String.valueOf(varTCV_USD_Total.setScale(2).format());
-            account.MRR_USD__c = '$' + String.valueOf(varMRR_USD_Total.setScale(2).format());
-        } catch (Exception e) {
-            System.debug(LoggingLevel.ERROR, 'AccountRollupBatch: USD formatting error for Account ' + account.Id + ': ' + e.getMessage());
+        // Step 8: Format USD fields for active accounts only
+        if (!shouldPreserveExpiredRevenue) {
+            try {
+                account.ARR_USD__c = '$' + String.valueOf(varARR_USD_Total.setScale(2).format());
+                account.ACV_USD__c = '$' + String.valueOf(varACV_USD_Total.setScale(2).format());
+                account.TCV_USD__c = '$' + String.valueOf(varTCV_USD_Total.setScale(2).format());
+                account.MRR_USD__c = '$' + String.valueOf(varMRR_USD_Total.setScale(2).format());
+            } catch (Exception e) {
+                System.debug(LoggingLevel.ERROR, 'AccountRollupBatch: USD formatting error for Account ' + account.Id + ': ' + e.getMessage());
+            }
         }
+        // For preserved accounts, keep existing USD values
         
-        // Step 10: Populate Number reporting fields (for aggregation and reporting)
-        try {
-            account.ARR_USD_Reporting__c = varARR_Reporting_Total.setScale(2);
-            account.ACV_USD_Reporting__c = varACV_Reporting_Total.setScale(2);
-            account.TCV_USD_Reporting__c = varTCV_Reporting_Total.setScale(2);
-            account.MRR_USD_Reporting__c = varMRR_Reporting_Total.setScale(2);
-        } catch (Exception e) {
-            System.debug(LoggingLevel.ERROR, 'AccountRollupBatch: Number reporting field error for Account ' + account.Id + ': ' + e.getMessage());
+        // Step 9: Populate reporting fields for active accounts only
+        if (!shouldPreserveExpiredRevenue) {
+            try {
+                account.ARR_USD_Reporting__c = varARR_Reporting_Total.setScale(2);
+                account.ACV_USD_Reporting__c = varACV_Reporting_Total.setScale(2);
+                account.TCV_USD_Reporting__c = varTCV_Reporting_Total.setScale(2);
+                account.MRR_USD_Reporting__c = varMRR_Reporting_Total.setScale(2);
+            } catch (Exception e) {
+                System.debug(LoggingLevel.ERROR, 'AccountRollupBatch: Reporting field error for Account ' + account.Id + ': ' + e.getMessage());
+            }
         }
+        // For preserved accounts, keep existing reporting values
         
         return account;
     }

@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>ARR__c</fullName>
+    <formula>CASE(Product2.Family,
+    &apos;Software Subscriptions&apos;, Price * Quantity,
+    &apos;Recurring Services&apos;, Price * Quantity,
+    &apos;CPUh - PAYG&apos;, Price * Quantity,
+    &apos;Sample-based&apos;, Price * Quantity,
+    &apos;CPUh - PAYG&apos;,0,
+    &apos;Professional Service&apos;,0,
+    0)</formula>
+    <formulaTreatBlanksAs>BlankAsZero</formulaTreatBlanksAs>
+    <label>ARR</label>
+    <precision>18</precision>
+    <required>false</required>
+    <scale>2</scale>
+    <trackHistory>false</trackHistory>
+    <type>Currency</type>
+</CustomField>

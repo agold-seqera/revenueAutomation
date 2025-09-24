@@ -343,8 +343,9 @@ public class AccountRollupBatch implements Database.Batchable<sObject> {
             return 'Active (Churning)';
         }
         
-        // Rule 8: Has_Active_Contracts
-        if (activeContracts > 0) {
+        // Rule 8: Has_Active_Contracts (but not if already handled by Rule 6)
+        if (activeContracts > 0 && 
+            !(account.Status__c == 'Active' && hasLostRenewal && !hasOpenRenewal)) {
             return 'Active';
         }
         

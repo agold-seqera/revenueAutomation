@@ -422,29 +422,78 @@ public with sharing class ContractTriggerHandler {
                 accountContractCounts.put(accountId, 0);
             }
             
-            // Get actual contract counts
-            for (AggregateResult ar : [
-                SELECT AccountId, COUNT(Id) contractCount 
+            // Get contract counts with proper business logic:
+            // 1. If account has Activated contracts → count only Activated contracts
+            // 2. If account has no Activated contracts → count Draft contracts
+            // 3. Otherwise → count = 0
+            
+            // First, get all contracts for the accounts to apply business logic
+            Map<Id, List<Contract>> accountContracts = new Map<Id, List<Contract>>();
+            for (Contract contract : [
+                SELECT Id, AccountId, Status 
                 FROM Contract 
-                WHERE AccountId IN :accountIds 
-                GROUP BY AccountId
+                WHERE AccountId IN :accountIds
             ]) {
-                Id accountId = (Id)ar.get('AccountId');
-                Integer count = (Integer)ar.get('contractCount');
-                accountContractCounts.put(accountId, count);
+                if (!accountContracts.containsKey(contract.AccountId)) {
+                    accountContracts.put(contract.AccountId, new List<Contract>());
+                }
+                accountContracts.get(contract.AccountId).add(contract);
             }
             
-            // Build account updates
+            // Apply business logic for each account
+            for (Id accountId : accountIds) {
+                List<Contract> contracts = accountContracts.get(accountId);
+                Integer contractCount = 0;
+                
+                if (contracts != null && !contracts.isEmpty()) {
+                    Integer activatedCount = 0;
+                    Integer draftCount = 0;
+                    
+                    // Count contracts by status
+                    for (Contract contract : contracts) {
+                        if (contract.Status == 'Activated') {
+                            activatedCount++;
+                        } else if (contract.Status == 'Draft') {
+                            draftCount++;
+                        }
+                    }
+                    
+                    // Apply business logic: Activated takes priority over Draft
+                    if (activatedCount > 0) {
+                        contractCount = activatedCount;  // Count only Activated contracts
+                    } else if (draftCount > 0) {
+                        contractCount = draftCount;      // Count Draft contracts only if no Activated
+                    }
+                    // Otherwise contractCount remains 0
+                }
+                
+                accountContractCounts.put(accountId, contractCount);
+            }
+            
+            // Query existing accounts to preserve all fields (especially Status__c)
+            Map<Id, Account> existingAccounts = new Map<Id, Account>([
+                SELECT Id, Has_Contracts__c, Contract_Count__c, Status__c, Type,
+                       ARR__c, ACV__c, TCV__c, MRR__c, Incremental_ARR__c,
+                       ARR_USD__c, ACV_USD__c, TCV_USD__c, MRR_USD__c,
+                       ARR_USD_Reporting__c, ACV_USD_Reporting__c, TCV_USD_Reporting__c, MRR_USD_Reporting__c
+                FROM Account 
+                WHERE Id IN :accountIds
+            ]);
+            
+            // Build account updates - preserve existing fields, only update contract counts
             List<Account> accountsToUpdate = new List<Account>();
             for (Id accountId : accountIds) {
-                Integer contractCount = accountContractCounts.get(accountId);
-                Boolean hasContracts = contractCount != null && contractCount > 0;
-                
-                accountsToUpdate.add(new Account(
-                    Id = accountId,
-                    Has_Contracts__c = hasContracts,
-                    Contract_Count__c = contractCount != null ? contractCount : 0
-                ));
+                Account existingAccount = existingAccounts.get(accountId);
+                if (existingAccount != null) {
+                    Integer contractCount = accountContractCounts.get(accountId);
+                    Boolean hasContracts = contractCount != null && contractCount > 0;
+                    
+                    // Only update contract-related fields, preserve all others
+                    existingAccount.Has_Contracts__c = hasContracts;
+                    existingAccount.Contract_Count__c = contractCount != null ? contractCount : 0;
+                    
+                    accountsToUpdate.add(existingAccount);
+                }
             }
             
             // Bulk update with error handling

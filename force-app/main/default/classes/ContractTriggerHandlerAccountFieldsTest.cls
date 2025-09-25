@@ -195,7 +195,7 @@ public class ContractTriggerHandlerAccountFieldsTest {
     }
     
     @isTest
-    static void testMultipleContractStatuses() {
+    static void testContractCountingBusinessLogic() {
         Account testAccount = [SELECT Id FROM Account WHERE Name = 'Account With Contracts' LIMIT 1];
         
         Test.startTest();
@@ -222,7 +222,9 @@ public class ContractTriggerHandlerAccountFieldsTest {
         
         Test.stopTest();
         
-        // Verify account fields count ALL contracts regardless of status
+        // Verify account fields follow new business logic:
+        // - Count only Activated contracts when they exist
+        // - Count Draft contracts only when no Activated contracts exist
         Account updatedAccount = [
             SELECT Id, Has_Contracts__c, Contract_Count__c 
             FROM Account 
@@ -230,7 +232,7 @@ public class ContractTriggerHandlerAccountFieldsTest {
         ];
         
         System.assertEquals(true, updatedAccount.Has_Contracts__c, 'Has_Contracts__c should be true');
-        System.assertEquals(3, updatedAccount.Contract_Count__c, 'Contract_Count__c should count all statuses');
+        System.assertEquals(1, updatedAccount.Contract_Count__c, 'Contract_Count__c should count only Activated contracts (1) when they exist, ignoring Draft contracts (2)');
     }
     
     @isTest

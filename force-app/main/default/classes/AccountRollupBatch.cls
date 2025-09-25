@@ -187,30 +187,62 @@ public class AccountRollupBatch implements Database.Batchable<sObject> {
             account.TCV__c = 0;
             account.Incremental_ARR__c = 0;
             
-            // Single loop, single condition - calculate ALL fields from ACTIVE and FUTURE contracts
+            // Apply contract counting business logic for revenue calculations:
+            // 1. If account has Activated contracts → calculate revenue from only Activated contracts
+            // 2. If account has no Activated contracts → calculate revenue from Draft contracts  
+            // 3. Otherwise → revenue = 0
+            
+            // First, determine which contracts should contribute to revenue
+            List<Contract> eligibleContracts = new List<Contract>();
+            
+            // Count contract types for business logic
+            Integer activatedCount = 0;
+            Integer draftCount = 0;
+            List<Contract> activatedContracts = new List<Contract>();
+            List<Contract> draftContracts = new List<Contract>();
+            
             for (Contract contract : account.Contracts) {
                 if (contract.Exclude_from_Status_Updates__c == false && 
-                    ((contract.StartDate <= today && contract.EndDate >= today) ||    // Active contracts
-                     (contract.StartDate > today))) {                                 // Future contracts
+                    ((contract.StartDate <= today && contract.EndDate >= today) ||    // Active by date
+                     (contract.StartDate > today))) {                                 // Future by date
                     
-                    // Base currency fields from ACTIVE and FUTURE contracts
-                    account.ARR__c += contract.ARR__c != null ? contract.ARR__c : 0;
-                    account.ACV__c += contract.ACV__c != null ? contract.ACV__c : 0;
-                    account.TCV__c += contract.TCV__c != null ? contract.TCV__c : 0;
-                    account.Incremental_ARR__c += contract.Incremental_ARR__c != null ? contract.Incremental_ARR__c : 0;
-                    
-                    // USD fields from SAME ACTIVE and FUTURE contracts
-                    varARR_USD_Total += parseUSDValue(contract.ARR_USD__c);
-                    varACV_USD_Total += parseUSDValue(contract.ACV_USD__c);
-                    varTCV_USD_Total += parseUSDValue(contract.TCV_USD__c);
-                    varMRR_USD_Total += parseUSDValue(contract.MRR_USD__c);
-                    
-                    // Reporting fields from SAME ACTIVE and FUTURE contracts
-                    varARR_Reporting_Total += contract.ARR_USD_Reporting__c != null ? contract.ARR_USD_Reporting__c : 0;
-                    varACV_Reporting_Total += contract.ACV_USD_Reporting__c != null ? contract.ACV_USD_Reporting__c : 0;
-                    varTCV_Reporting_Total += contract.TCV_USD_Reporting__c != null ? contract.TCV_USD_Reporting__c : 0;
-                    varMRR_Reporting_Total += contract.MRR_USD_Reporting__c != null ? contract.MRR_USD_Reporting__c : 0;
+                    if (contract.Status == 'Activated') {
+                        activatedCount++;
+                        activatedContracts.add(contract);
+                    } else if (contract.Status == 'Draft') {
+                        draftCount++;
+                        draftContracts.add(contract);
+                    }
                 }
+            }
+            
+            // Apply business logic: Activated takes priority over Draft
+            if (activatedCount > 0) {
+                eligibleContracts = activatedContracts;  // Use only Activated contracts
+            } else if (draftCount > 0) {
+                eligibleContracts = draftContracts;      // Use Draft contracts only if no Activated
+            }
+            // Otherwise eligibleContracts remains empty and revenue = 0
+            
+            // Calculate revenue from eligible contracts only
+            for (Contract contract : eligibleContracts) {
+                // Base currency fields from eligible contracts
+                account.ARR__c += contract.ARR__c != null ? contract.ARR__c : 0;
+                account.ACV__c += contract.ACV__c != null ? contract.ACV__c : 0;
+                account.TCV__c += contract.TCV__c != null ? contract.TCV__c : 0;
+                account.Incremental_ARR__c += contract.Incremental_ARR__c != null ? contract.Incremental_ARR__c : 0;
+                
+                // USD fields from eligible contracts
+                varARR_USD_Total += parseUSDValue(contract.ARR_USD__c);
+                varACV_USD_Total += parseUSDValue(contract.ACV_USD__c);
+                varTCV_USD_Total += parseUSDValue(contract.TCV_USD__c);
+                varMRR_USD_Total += parseUSDValue(contract.MRR_USD__c);
+                
+                // Reporting fields from eligible contracts
+                varARR_Reporting_Total += contract.ARR_USD_Reporting__c != null ? contract.ARR_USD_Reporting__c : 0;
+                varACV_Reporting_Total += contract.ACV_USD_Reporting__c != null ? contract.ACV_USD_Reporting__c : 0;
+                varTCV_Reporting_Total += contract.TCV_USD_Reporting__c != null ? contract.TCV_USD_Reporting__c : 0;
+                varMRR_Reporting_Total += contract.MRR_USD_Reporting__c != null ? contract.MRR_USD_Reporting__c : 0;
             }
         }
         

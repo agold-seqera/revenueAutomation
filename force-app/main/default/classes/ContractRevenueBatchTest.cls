@@ -97,7 +97,7 @@ private class ContractRevenueBatchTest {
 
         // Incremental
         System.assertEquals(120, c.Incremental_ARR__c, 'Incremental ARR equals ARR when previous is null');
-        System.assertEquals(60, c.Incremental_ARR_USD_Reporting__c, 'Incremental ARR USD equals ARR_USD when previous is null');
+        System.assertEquals(60, c.Incremental_ARR_USD_Reporting__c, 'Incremental ARR USD equals ARR_USD when previous is null (120 / 2)');
     }
 
     @IsTest

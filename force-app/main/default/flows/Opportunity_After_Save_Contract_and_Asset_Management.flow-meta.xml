@@ -1,6 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <Flow xmlns="http://soap.sforce.com/2006/04/metadata">
     <apiVersion>63.0</apiVersion>
+    <areMetricsLoggedToDataCloud>false</areMetricsLoggedToDataCloud>
     <assignments>
         <name>Init_Asset</name>
         <label>Init Asset</label>
@@ -392,6 +393,104 @@
                 <elementReference>varC_PreviousMRR</elementReference>
             </value>
         </assignmentItems>
+        <assignmentItems>
+            <assignToReference>recContract.ARR_USD_Reporting__c</assignToReference>
+            <operator>Assign</operator>
+            <value>
+                <elementReference>forN_ARR_Reporting</elementReference>
+            </value>
+        </assignmentItems>
+        <assignmentItems>
+            <assignToReference>recContract.Initial_ACV_USD_Reporting__c</assignToReference>
+            <operator>Assign</operator>
+            <value>
+                <elementReference>forN_ACV_Reporting</elementReference>
+            </value>
+        </assignmentItems>
+        <assignmentItems>
+            <assignToReference>recContract.ACV_USD_Reporting__c</assignToReference>
+            <operator>Assign</operator>
+            <value>
+                <elementReference>forN_ACV_Reporting</elementReference>
+            </value>
+        </assignmentItems>
+        <assignmentItems>
+            <assignToReference>recContract.Previous_ARR_USD_Reporting__c</assignToReference>
+            <operator>Assign</operator>
+            <value>
+                <elementReference>varN_PreviousARR_Reporting</elementReference>
+            </value>
+        </assignmentItems>
+        <assignmentItems>
+            <assignToReference>recContract.Initial_ARR_USD_Reporting__c</assignToReference>
+            <operator>Assign</operator>
+            <value>
+                <elementReference>forN_ARR_Reporting</elementReference>
+            </value>
+        </assignmentItems>
+        <assignmentItems>
+            <assignToReference>recContract.Previous_ACV_USD_Reporting__c</assignToReference>
+            <operator>Assign</operator>
+            <value>
+                <elementReference>varN_PreviousACV_Reporting</elementReference>
+            </value>
+        </assignmentItems>
+        <assignmentItems>
+            <assignToReference>recContract.MRR_USD_Reporting__c</assignToReference>
+            <operator>Assign</operator>
+            <value>
+                <elementReference>forN_MRR_Reporting</elementReference>
+            </value>
+        </assignmentItems>
+        <assignmentItems>
+            <assignToReference>recContract.Previous_MRR_USD_Reporting__c</assignToReference>
+            <operator>Assign</operator>
+            <value>
+                <elementReference>varN_PreviousMRR_Reporting</elementReference>
+            </value>
+        </assignmentItems>
+        <assignmentItems>
+            <assignToReference>recContract.Initial_MRR_USD_Reporting__c</assignToReference>
+            <operator>Assign</operator>
+            <value>
+                <elementReference>forN_MRR_Reporting</elementReference>
+            </value>
+        </assignmentItems>
+        <assignmentItems>
+            <assignToReference>recContract.Previous_TCV_USD_Reporting__c</assignToReference>
+            <operator>Assign</operator>
+            <value>
+                <elementReference>varN_PreviousTCV_Reporting</elementReference>
+            </value>
+        </assignmentItems>
+        <assignmentItems>
+            <assignToReference>recContract.TCV_USD_Reporting__c</assignToReference>
+            <operator>Assign</operator>
+            <value>
+                <elementReference>forN_TCV_Reporting</elementReference>
+            </value>
+        </assignmentItems>
+        <assignmentItems>
+            <assignToReference>recContract.Initial_TCV_USD_Reporting__c</assignToReference>
+            <operator>Assign</operator>
+            <value>
+                <elementReference>forN_TCV_Reporting</elementReference>
+            </value>
+        </assignmentItems>
+        <assignmentItems>
+            <assignToReference>recContract.Incremental_ARR__c</assignToReference>
+            <operator>Assign</operator>
+            <value>
+                <elementReference>$Record.Incremental_ARR_calc__c</elementReference>
+            </value>
+        </assignmentItems>
+        <assignmentItems>
+            <assignToReference>recContract.Incremental_ARR_USD_Reporting__c</assignToReference>
+            <operator>Assign</operator>
+            <value>
+                <elementReference>forN_IncrementalARR_Reporting</elementReference>
+            </value>
+        </assignmentItems>
         <connector>
             <targetReference>Create_Contract</targetReference>
         </connector>
@@ -773,40 +872,16 @@
     </decisions>
     <environments>Default</environments>
     <formulas>
-        <name>forCalculatedACV_USD</name>
-        <dataType>Currency</dataType>
-        <expression>{!$Record.ACV__c} * {!forCurrentExchangeRate}</expression>
-        <scale>2</scale>
-    </formulas>
-    <formulas>
-        <name>forCalculatedARR_USD</name>
-        <dataType>Currency</dataType>
-        <expression>{!$Record.ARR_RUS__c} * {!forCurrentExchangeRate}</expression>
-        <scale>2</scale>
-    </formulas>
-    <formulas>
         <name>forCalculatedMRR_USD</name>
         <dataType>Currency</dataType>
-        <expression>{!$Record.MRR__c} * {!forCurrentExchangeRate}</expression>
+        <expression>{!$Record.MRR__c} * {!Get_Current_Exchange_Rate.ConversionRate}</expression>
         <scale>2</scale>
     </formulas>
     <formulas>
         <name>forCalculatedTCV_USD</name>
         <dataType>Currency</dataType>
-        <expression>{!$Record.TCV__c} * {!forCurrentExchangeRate}</expression>
+        <expression>{!$Record.TCV__c} * {!Get_Current_Exchange_Rate.ConversionRate}</expression>
         <scale>2</scale>
-    </formulas>
-    <formulas>
-        <name>forCurrentExchangeRate</name>
-        <dataType>Number</dataType>
-        <expression>IF(TEXT({!$Record.CurrencyIsoCode}) = &quot;USD&quot;, 
-    1.0, 
-    IF(ISNULL({!Get_Current_Exchange_Rate.ConversionRate}), 
-        1.0, 
-        1 / {!Get_Current_Exchange_Rate.ConversionRate}
-    )
-)</expression>
-        <scale>6</scale>
     </formulas>
     <formulas>
         <name>forD_ContractEndDate</name>
@@ -845,6 +920,36 @@
         <name>form_ContractEndDate</name>
         <dataType>Date</dataType>
         <expression>IF(ISBLANK({!recContract.EndDate}), TODAY()+365, {!recContract.EndDate})</expression>
+    </formulas>
+    <formulas>
+        <name>forN_ACV_Reporting</name>
+        <dataType>Number</dataType>
+        <expression>{!$Record.ACV__c} * {!Get_Current_Exchange_Rate.ConversionRate}</expression>
+        <scale>2</scale>
+    </formulas>
+    <formulas>
+        <name>forN_ARR_Reporting</name>
+        <dataType>Number</dataType>
+        <expression>{!$Record.ARR_RUS__c} * {!Get_Current_Exchange_Rate.ConversionRate}</expression>
+        <scale>2</scale>
+    </formulas>
+    <formulas>
+        <name>forN_IncrementalARR_Reporting</name>
+        <dataType>Number</dataType>
+        <expression>{!$Record.Incremental_ARR_calc__c} * {!Get_Current_Exchange_Rate.ConversionRate}</expression>
+        <scale>2</scale>
+    </formulas>
+    <formulas>
+        <name>forN_MRR_Reporting</name>
+        <dataType>Number</dataType>
+        <expression>{!$Record.MRR__c} * {!Get_Current_Exchange_Rate.ConversionRate}</expression>
+        <scale>2</scale>
+    </formulas>
+    <formulas>
+        <name>forN_TCV_Reporting</name>
+        <dataType>Number</dataType>
+        <expression>{!$Record.TCV__c} * {!Get_Current_Exchange_Rate.ConversionRate}</expression>
+        <scale>2</scale>
     </formulas>
     <interviewLabel>Opportunity After Save | Contract and Asset Management {!$Flow.CurrentDateTime}</interviewLabel>
     <label>Opportunity After Save | Contract and Asset Management</label>
@@ -901,7 +1006,7 @@
         <locationX>226</locationX>
         <locationY>3641</locationY>
         <connector>
-            <targetReference>Update_Contract_USD_Fields</targetReference>
+            <targetReference>Create_OLIs</targetReference>
         </connector>
         <faultConnector>
             <targetReference>Error_Message</targetReference>
@@ -936,7 +1041,7 @@
         <name>Create_OLIs</name>
         <label>Create OLIs</label>
         <locationX>226</locationX>
-        <locationY>3857</locationY>
+        <locationY>3749</locationY>
         <inputReference>colOLI</inputReference>
     </recordCreates>
     <recordCreates>
@@ -1093,8 +1198,16 @@
         </filters>
         <object>Contract</object>
         <outputAssignments>
+            <assignToReference>varN_PreviousACV_Reporting</assignToReference>
+            <field>ACV_USD_Reporting__c</field>
+        </outputAssignments>
+        <outputAssignments>
             <assignToReference>varC_PreviousACV</assignToReference>
             <field>ACV__c</field>
+        </outputAssignments>
+        <outputAssignments>
+            <assignToReference>varN_PreviousARR_Reporting</assignToReference>
+            <field>ARR_USD_Reporting__c</field>
         </outputAssignments>
         <outputAssignments>
             <assignToReference>varC_PreviousARR</assignToReference>
@@ -1105,8 +1218,16 @@
             <field>Id</field>
         </outputAssignments>
         <outputAssignments>
+            <assignToReference>varN_PreviousMRR_Reporting</assignToReference>
+            <field>MRR_USD_Reporting__c</field>
+        </outputAssignments>
+        <outputAssignments>
             <assignToReference>varC_PreviousMRR</assignToReference>
             <field>MRR__c</field>
+        </outputAssignments>
+        <outputAssignments>
+            <assignToReference>varN_PreviousTCV_Reporting</assignToReference>
+            <field>TCV_USD_Reporting__c</field>
         </outputAssignments>
         <outputAssignments>
             <assignToReference>varC_PreviousTCV</assignToReference>
@@ -1118,7 +1239,7 @@
         <label>Get Renewal Opp</label>
         <locationX>314</locationX>
         <locationY>755</locationY>
-        <assignNullValuesIfNoRecordsFound>false</assignNullValuesIfNoRecordsFound>
+        <assignNullValuesIfNoRecordsFound>true</assignNullValuesIfNoRecordsFound>
         <connector>
             <isGoTo>true</isGoTo>
             <targetReference>Get_All_OLIs</targetReference>
@@ -1223,30 +1344,6 @@
             </value>
         </inputAssignments>
         <inputReference>$Record</inputReference>
-    </recordUpdates>
-    <recordUpdates>
-        <name>Update_Contract_USD_Fields</name>
-        <label>Update Contract USD Fields</label>
-        <locationX>226</locationX>
-        <locationY>3749</locationY>
-        <connector>
-            <targetReference>Create_OLIs</targetReference>
-        </connector>
-        <filterLogic>and</filterLogic>
-        <filters>
-            <field>Id</field>
-            <operator>EqualTo</operator>
-            <value>
-                <elementReference>recContract.Id</elementReference>
-            </value>
-        </filters>
-        <inputAssignments>
-            <field>Description</field>
-            <value>
-                <stringValue>USD formatting triggered after Asset creation</stringValue>
-            </value>
-        </inputAssignments>
-        <object>Contract</object>
     </recordUpdates>
     <recordUpdates>
         <name>Update_Contract_with_Renewal</name>
@@ -1387,6 +1484,38 @@
     <variables>
         <name>varC_PreviousTCV</name>
         <dataType>Currency</dataType>
+        <isCollection>false</isCollection>
+        <isInput>false</isInput>
+        <isOutput>false</isOutput>
+        <scale>2</scale>
+    </variables>
+    <variables>
+        <name>varN_PreviousACV_Reporting</name>
+        <dataType>Number</dataType>
+        <isCollection>false</isCollection>
+        <isInput>false</isInput>
+        <isOutput>false</isOutput>
+        <scale>2</scale>
+    </variables>
+    <variables>
+        <name>varN_PreviousARR_Reporting</name>
+        <dataType>Number</dataType>
+        <isCollection>false</isCollection>
+        <isInput>false</isInput>
+        <isOutput>false</isOutput>
+        <scale>2</scale>
+    </variables>
+    <variables>
+        <name>varN_PreviousMRR_Reporting</name>
+        <dataType>Number</dataType>
+        <isCollection>false</isCollection>
+        <isInput>false</isInput>
+        <isOutput>false</isOutput>
+        <scale>2</scale>
+    </variables>
+    <variables>
+        <name>varN_PreviousTCV_Reporting</name>
+        <dataType>Number</dataType>
         <isCollection>false</isCollection>
         <isInput>false</isInput>
         <isOutput>false</isOutput>

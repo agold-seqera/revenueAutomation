@@ -1,8 +1,5 @@
 /**
- * Batch class to replace Scheduled_Flow_Daily_Update_Assets
- * Replicates EXACT flow business logic for asset status updates
- * 
- * Flow Logic Replicated:
+ * Status Logic:
  * - Processes assets with Status = 'Purchased' OR 'Active'
  * - Updates to 'Active' if: Start_Date__c <= TODAY AND End_Date__c >= TODAY 
  *   AND Status != 'Active' AND Status != 'Cancelled' AND Exclude_from_Status_Updates__c = false
@@ -10,11 +7,6 @@
  *   AND Status != 'Inactive' AND Status != 'Cancelled' AND Exclude_from_Status_Updates__c = false
  */
 public class AssetStatusBatch implements Database.Batchable<sObject>, Schedulable {
-    
-    /**
-     * Query assets matching exact flow criteria:
-     * Status = 'Purchased' OR Status = 'Active'
-     */
     public Database.QueryLocator start(Database.BatchableContext bc) {
         return Database.getQueryLocator([
             SELECT Id, Status, Start_Date__c, End_Date__c, Exclude_from_Status_Updates__c
@@ -23,9 +15,6 @@ public class AssetStatusBatch implements Database.Batchable<sObject>, Schedulabl
         ]);
     }
     
-    /**
-     * Process each batch of assets using exact flow decision logic
-     */
     public void execute(Database.BatchableContext bc, List<Asset> assets) {
         List<Asset> assetsToUpdate = new List<Asset>();
         Date today = Date.today();
@@ -39,12 +28,10 @@ public class AssetStatusBatch implements Database.Batchable<sObject>, Schedulabl
             }
         }
         
-        // Bulk update - matches flow's Update_Asset element
         if (!assetsToUpdate.isEmpty()) {
             try {
                 Database.SaveResult[] results = Database.update(assetsToUpdate, false);
                 
-                // Log any failures (flow would fail silently)
                 for (Integer i = 0; i < results.size(); i++) {
                     if (!results[i].isSuccess()) {
                         System.debug(LoggingLevel.ERROR, 
@@ -58,53 +45,29 @@ public class AssetStatusBatch implements Database.Batchable<sObject>, Schedulabl
         }
     }
     
-    /**
-     * Chain to Contract processing after Asset processing completes
-     */
+    // Chain to Contract processing after Asset processing completes
     public void finish(Database.BatchableContext bc) {
-        // Sequential execution: Asset → Contract → Account
         Database.executeBatch(new ContractRevenueBatch(), 50);
         System.debug('AssetStatusBatch: Processing complete, chaining to ContractRevenueBatch');
     }
     
-    /**
-     * Schedulable interface - allows this to be scheduled
-     */
+    // Schedulable interface - allows this to be scheduled
     public void execute(SchedulableContext sc) {
         Database.executeBatch(this, 200); // Process 200 assets per batch
     }
     
-    /**
-     * Replicate exact flow decision logic for asset status determination
-     * 
-     * Flow Decision 1: Should_Asset_be_Active
-     * Conditions (ALL must be true):
-     * - Start_Date__c <= TODAY
-     * - End_Date__c >= TODAY  
-     * - Status != 'Active'
-     * - Status != 'Cancelled'
-     * - Exclude_from_Status_Updates__c = false
-     * 
-     * Flow Decision 2: Should_Asset_be_Inactive  
-     * Conditions (ALL must be true):
-     * - Start_Date__c < TODAY
-     * - End_Date__c < TODAY
-     * - Status != 'Inactive'
-     * - Status != 'Cancelled'
-     * - Exclude_from_Status_Updates__c = false
-     */
     private String determineAssetStatus(Asset asset, Date today) {
         // Skip if excluded from status updates
         if (asset.Exclude_from_Status_Updates__c == true) {
-            return null; // No change
+            return null; 
         }
         
-        // Skip if already cancelled
+        // Skip if cancelled
         if (asset.Status == 'Cancelled') {
-            return null; // No change
+            return null; 
         }
         
-        // Flow Decision 1: Should_Asset_be_Active
+        // Should Asset be Active
         if (asset.Start_Date__c <= today && 
             asset.End_Date__c >= today && 
             asset.Status != 'Active' && 
@@ -112,8 +75,8 @@ public class AssetStatusBatch implements Database.Batchable<sObject>, Schedulabl
             return 'Active';
         }
         
-        // Flow Decision 2: Should_Asset_be_Inactive
-        if (asset.Start_Date__c < today && 
+        // Should Asset be Inactive
+        else if (asset.Start_Date__c < today && 
             asset.End_Date__c < today && 
             asset.Status != 'Inactive' && 
             asset.Status != 'Cancelled') {
@@ -121,6 +84,8 @@ public class AssetStatusBatch implements Database.Batchable<sObject>, Schedulabl
         }
         
         // Default: No change needed
-        return null;
+        else {
+            return null;
+        }
     }
 }

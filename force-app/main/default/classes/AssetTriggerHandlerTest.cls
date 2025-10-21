@@ -1,34 +1,21 @@
-// GTM-138: Test class for AssetTriggerHandler
-// 
-// Provides comprehensive test coverage for Asset trigger handler functionality
-// including exchange rate inheritance from OpportunityLineItems during Asset creation
-// 
-// @author Alex Goldstein / Syl Architecture  
-// @date September 2025
-// @version 1.0
 @isTest
 public class AssetTriggerHandlerTest {
     
     @testSetup
     static void setupTestData() {
-        // Create test Account using TestDataFactory
         Account testAccount = TestDataFactory.createAccount('Asset Exchange Rate Test Account');
         insert testAccount;
         
-        // Create test Opportunity using TestDataFactory (USD to match PricebookEntry)
         Opportunity testOpp = TestDataFactory.createOpportunity(testAccount.Id, 'Asset Test Opportunity');
         testOpp.CurrencyIsoCode = 'USD';
         insert testOpp;
         
-        // Create test Product using TestDataFactory
         Product2 testProduct = TestDataFactory.createProduct('Test Product for Assets', 'Software Subscriptions');
         insert testProduct;
         
-        // Create PricebookEntry using TestDataFactory
         PricebookEntry testPBE = TestDataFactory.createPricebookEntry(testProduct.Id, 1000);
         insert testPBE;
         
-        // Create test OpportunityLineItems with different exchange rate scenarios using TestDataFactory
         List<OpportunityLineItem> testOLIs = new List<OpportunityLineItem>();
         
         // OLI 1: Has exchange rate (will be inherited by Asset)
@@ -278,7 +265,7 @@ public class AssetTriggerHandlerTest {
         Test.startTest();
         
         try {
-            // Create Asset with invalid OLI ID (should handle gracefully)
+            // Create Asset with invalid OLI ID
             Account testAccount = [SELECT Id FROM Account LIMIT 1];
             Asset assetWithInvalidOLI = new Asset(
                 Name = 'Asset With Invalid OLI',

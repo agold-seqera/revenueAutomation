@@ -102,10 +102,10 @@ public class QuoteSyncInvocable {
     
     // Validate that quote can be synced
     private static String validateQuoteForSync(Quote quote) {
-        Set<String> validStatuses = new Set<String>{'Approved', 'Presented', 'Accepted'};
+        Set<String> validStatuses = new Set<String>{'Approved', 'Presented', 'Accepted', 'Draft', 'In Review', 'Needs Review'};
         
         if (!validStatuses.contains(quote.Status)) {
-            return 'Quote must be Approved, Presented, or Accepted before syncing (Current Status: ' + quote.Status + ')';
+            return 'Quote must be Draft, In Review, Needs Review, Approved, Presented, or Accepted before syncing (Current Status: ' + quote.Status + ')';
         }
         
         if (quote.OpportunityId == null) {
